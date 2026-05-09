@@ -10820,5 +10820,7 @@ Sila semak sistem STB untuk tindakan selanjutnya.`;
     container.appendChild(card);
   });
 }
+// Tambahkan }); di sini untuk menutup document.addEventListener('DOMContentLoaded'...
+}); 
 
 console.log("STB System V6.5.2 - Web App JS loaded successfully");
