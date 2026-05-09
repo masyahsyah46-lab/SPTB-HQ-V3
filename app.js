@@ -39,7 +39,7 @@ document.addEventListener('DOMContentLoaded', () => {
   let bakulUnsubscribe = null;
 
   // URL APPSCRIPT
-  const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycby61IHDvSw1f3Oa0dZdiwR3hmthR8QW5FBMuuVeoqYov_ogeIlEvuhdeIBDO5rDi7j_/exec';
+  const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxj6oSSi4Z2hB8u4MU-1rPcYc1ukNzjsFEwtkP5R9xGUYOX4oABUflnM8Flxk2MndtP/exec';
   
   // Google Client ID
   const GOOGLE_CLIENT_ID = '758579492428-rnfev1nkkf2e6qduhujgtfbhudl2j9td.apps.googleusercontent.com';
@@ -5143,34 +5143,47 @@ Sila semak sistem STB untuk tindakan selanjutnya.`;
       const dbPautanValue = document.getElementById('db_pautan')?.value || '';
       const isDriveAlreadyCreated = driveFolderCreated === true || (dbPautanValue && dbPautanValue.trim() !== '');
       
+      // ====================================================================
+      // LOGIK BARU: Jika folder dah ada, tanya pengguna nak simpan versi baharu atau cetak biasa
+      // ====================================================================
       if (isDriveAlreadyCreated) {
-        window.print();
-        hasPrinted = true;
-        storageWrapper.set({ 'stb_has_printed': true });
-        if (btnSyncToDb) {
-          btnSyncToDb.style.display = 'inline-block';
+        const userChoice = await CustomAppModal.confirm(
+            "Folder syarikat ini telah wujud di Drive. Adakah anda ingin menyimpan versi terbaharu borang ini (Telah Syor/Lengkap) ke dalam Drive, atau sekadar cetak biasa?",
+            "Simpan Versi Baharu",
+            "info",
+            "Simpan ke Drive",
+            false
+        );
+        
+        if (!userChoice) {
+          window.print();
+          hasPrinted = true;
+          storageWrapper.set({ 'stb_has_printed': true });
+          if (btnSyncToDb) {
+            btnSyncToDb.style.display = 'inline-block';
+          }
+          return; // Berhenti jika hanya mahu cetak
         }
-        await CustomAppModal.alert("Cetakan biasa. Folder Drive telah pun dicipta sebelum ini.", "Info Cetakan", "info");
-        return;
-      }
-      
-      const userConfirmed = await CustomAppModal.confirm(
-          "Adakah anda pasti ingin mencetak dan menyimpan borang ini ke Google Drive?",
-          "Cetak & Simpan",
-          "info",
-          "Ya, Teruskan",
-          false
-      );
-      
-      if (!userConfirmed) {
-        window.print();
-        hasPrinted = true;
-        storageWrapper.set({ 'stb_has_printed': true });
-        if (btnSyncToDb) {
-          btnSyncToDb.style.display = 'inline-block';
+      } 
+      // Jika folder belum ada, tanya soalan standard
+      else {
+        const userConfirmed = await CustomAppModal.confirm(
+            "Adakah anda pasti ingin mencetak dan menyimpan borang ini ke Google Drive?",
+            "Cetak & Simpan",
+            "info",
+            "Ya, Teruskan",
+            false
+        );
+        
+        if (!userConfirmed) {
+          window.print();
+          hasPrinted = true;
+          storageWrapper.set({ 'stb_has_printed': true });
+          if (btnSyncToDb) {
+            btnSyncToDb.style.display = 'inline-block';
+          }
+          return;
         }
-        await CustomAppModal.alert("Borang telah dicetak. Butang 'Simpan & Ke Input Database' kini tersedia.", "Info", "success");
-        return;
       }
       
       const companyName = document.getElementById('borang_syarikat')?.value.trim();
@@ -5256,13 +5269,20 @@ Sila semak sistem STB untuk tindakan selanjutnya.`;
             if (currentProgress > 90) currentProgress = 90;
             if (progressBar) progressBar.style.width = `${currentProgress}%`;
             if (progressPercent) progressPercent.textContent = `${currentProgress}%`;
-            if (progressLabel) progressLabel.textContent = currentProgress < 30 ? 'Menyediakan dokumen PDF...' : currentProgress < 60 ? 'Mencipta folder di Google Drive...' : 'Menyimpan fail...';
+            if (progressLabel) progressLabel.textContent = currentProgress < 30 ? 'Menyediakan dokumen PDF...' : currentProgress < 60 ? 'Menyimpan fail versi baharu...' : 'Menyelaraskan folder...';
           }
         }, 200);
       }
       
       if (printLayoutElement) printLayoutElement.style.display = 'none';
       
+      // =========================================================================
+      // KOD TAMBAHAN: PARAMETER VERSI UNTUK DIHANTAR KE BACKEND
+      // =========================================================================
+      const isSyor = document.getElementById('borang_syor_pengesyor')?.value !== "";
+      const pelulusKeputusan = document.getElementById('pelulus_keputusan')?.value;
+      const isLengkap = pelulusKeputusan !== undefined && pelulusKeputusan !== "";
+
       const payload = {
         action: 'cetak_dan_simpan_pdf',
         company_name: companyName,
@@ -5272,7 +5292,9 @@ Sila semak sistem STB untuk tindakan selanjutnya.`;
         user_color: userColorHex,
         main_folder_id: mainFolderId,
         htmlContent: printHTML,
-        email: currentUser ? currentUser.email : '' // <-- TAMBAH INI
+        email: currentUser ? currentUser.email : '',
+        is_telah_syor: isSyor,
+        is_lengkap: isLengkap
       };
       
       try {
@@ -5317,7 +5339,12 @@ Sila semak sistem STB untuk tindakan selanjutnya.`;
             if (btnSyncToDb) btnSyncToDb.style.display = 'inline-block';
             if (driveResult && folderUrl) showDriveFolderLink(folderUrl, userFolderUrl);
             
-            await CustomAppModal.alert("Borang telah dicetak dan fail PDF berjaya disimpan di Drive!<br><br>Pautan folder telah dimasukkan secara automatik ke Input Database.", "Berjaya Disimpan", "success");
+            // Tunjuk Mesej berdasarkan pilihan pengguna
+            const mesejBerjaya = isDriveAlreadyCreated 
+                ? "Fail PDF versi baharu telah dicetak dan berjaya ditambah ke dalam folder Google Drive yang sama!" 
+                : "Borang telah dicetak dan fail PDF berjaya disimpan di Drive!<br><br>Pautan folder telah dimasukkan secara automatik ke Input Database.";
+            
+            await CustomAppModal.alert(mesejBerjaya, "Berjaya Disimpan", "success");
           }, 500);
           
         } else {
@@ -5433,7 +5460,105 @@ Sila semak sistem STB untuk tindakan selanjutnya.`;
     }
 
     tbody.innerHTML = rowsHtml;
-  }
+
+    // =========================================================================
+    // KOD TAMBAHAN: MASUKKAN TANDATANGAN & COP PENGESYOR
+    // =========================================================================
+    let printSigImage = "";
+    const sigSaved = document.getElementById('sig-image-saved');
+    
+    if (sigSaved && sigSaved.style.display === 'block' && sigSaved.src) {
+        printSigImage = sigSaved.src;
+    } else {
+        const sigMode = document.querySelector('input[name="sigMode"]:checked')?.value || 'draw';
+        if (sigMode === 'draw') {
+            const sCanvas = document.getElementById('sig-canvas');
+            if(sCanvas) printSigImage = sCanvas.toDataURL('image/png');
+        } else {
+            const tCanvas = document.getElementById('sig-type-canvas');
+            if(tCanvas) printSigImage = tCanvas.toDataURL('image/png');
+        }
+    }
+
+    let printStampImage = "";
+    const stampSaved = document.getElementById('stamp-image-saved');
+    
+    if (stampSaved && stampSaved.style.display === 'block' && stampSaved.src) {
+        printStampImage = stampSaved.src;
+    } else {
+        const stampCanvas = document.getElementById('stamp-canvas');
+        if(stampCanvas) printStampImage = stampCanvas.toDataURL('image/png');
+    }
+
+    const signBox = document.querySelector('.pengesyor-sign-box');
+    if (signBox) {
+        const sigHtml = (printSigImage && printSigImage.length > 100) ? `<img src="${printSigImage}" style="height: 60px; object-fit: contain;">` : '';
+        const stampHtml = (printStampImage && printStampImage.length > 100) ? `<img src="${printStampImage}" style="height: 60px; object-fit: contain;">` : '';
+
+        signBox.innerHTML = `
+            <div style="display: flex; flex-direction: column; align-items: center; justify-content: flex-end; height: 120px;">
+                <div style="display: flex; gap: 10px; margin-bottom: 5px;">
+                    ${sigHtml}
+                    ${stampHtml}
+                </div>
+                <div style="border-top: 1px solid #000; width: 100%; padding-top: 2px;">(Tandatangan & Cop Pengesyor)</div>
+            </div>
+        `;
+    }
+
+    const tarikhLengkap = document.getElementById('borang_tarikh_lengkap')?.value;
+    const printTarikhProses = document.querySelector('.pengesyor-dates');
+    if (printTarikhProses) {
+         printTarikhProses.innerHTML = `
+            <div>Tarikh Mohon: <span style="font-weight:bold; text-decoration: underline;">${tMohon ? formatDateDisplay(tMohon) : '_____________'}</span></div>
+            <div>Dokumen Lengkap: <span style="font-weight:bold; text-decoration: underline;">${tarikhLengkap ? formatDateDisplay(tarikhLengkap) : '_____________'}</span></div>
+         `;
+    }
+
+    // =========================================================================
+    // KOD TAMBAHAN: MASUKKAN DATA PELULUS KE DALAM CETAKAN (JIKA ADA)
+    // =========================================================================
+    const record = window.currentLoadedRecord || {};
+    let pSig = "", pStamp = "";
+    if (record.checker_json) {
+        try {
+            const j = JSON.parse(record.checker_json);
+            pSig = j.pelulus_signature || "";
+            pStamp = j.pelulus_stamp || "";
+        } catch(e){}
+    }
+
+    const pelulusBox = document.querySelectorAll('.verification-box')[1]; // Kotak kedua (Pelulus)
+    if (pelulusBox) {
+        const kelulusan = record.kelulusan || "";
+        const catatan = record.alasan || "__________________";
+        const tarikhLulus = record.tarikh_lulus ? formatDateDisplay(record.tarikh_lulus) : "________________";
+        const namaPelulus = record.pelulus || "________________________________________";
+
+        const sigHtml = (pSig.length > 100) ? `<img src="${pSig}" style="height: 60px; object-fit: contain;">` : '';
+        const stampHtml = (pStamp.length > 100) ? `<img src="${pStamp}" style="height: 60px; object-fit: contain;">` : '';
+
+        pelulusBox.innerHTML = `
+            <div>
+                <div class="ver-title">BAHAGIAN PELULUS</div>
+                <div style="border-bottom: 1px dotted #000; height: 18px; margin-bottom: 8px; font-size:11pt; color:#222;">Catatan: <b>${catatan}</b></div>
+                <div class="options-text-center" style="border-bottom: none; padding-bottom: 0; font-weight: bold; font-size: 13pt;">
+                    KEPUTUSAN: <span style="text-decoration: underline;">${kelulusan || 'BELUM DILULUSKAN'}</span>
+                </div>
+            </div>
+            <div style="display: flex; justify-content: space-between; align-items: flex-end;">
+                <div style="font-weight:700;">Tarikh: ${tarikhLulus}</div>
+                <div style="text-align: center; width: 50%;">
+                    <div style="display: flex; gap: 10px; justify-content: center; margin-bottom: 5px;">
+                        ${sigHtml}
+                        ${stampHtml}
+                    </div>
+                    <div style="border-top: 1px solid #000; padding-top: 2px;">(${namaPelulus})</div>
+                </div>
+            </div>
+        `;
+    }
+  } // <--- INI ADALAH PENUTUP SEBENAR UNTUK FUNGSI preparePrintView()
 
   function setupAutoSaveListeners() {
     const checkerTab = document.getElementById('tab-checker');
@@ -6261,6 +6386,12 @@ Sila semak sistem STB untuk tindakan selanjutnya.`;
     }
     
     resetInactivityTimer();
+    
+    // TAMBAH BARIS INI:
+    if (typeof window.generateOfficialStamp === 'function') {
+        window.generateOfficialStamp();
+    }
+  }
 
     // --- KOD BARU: Download Senarai Pelulus dari Database ---
     console.log("V6.5.2 Memuat turun senarai pelulus untuk notifikasi...");
@@ -8099,33 +8230,93 @@ Sila semak sistem STB untuk tindakan selanjutnya.`;
   }
 
  async function loadRecordToDbOnly(item) {
+    window.currentLoadedRecord = item; // <--- TAMBAH BARIS INI
     const hasUnsaved = checkUnsavedData();
     
-    // Jika ada data belum simpan, tanya sekali sahaja (Warning)
+    // 1. Semakan data belum simpan (Confirm Overwrite)
     if (hasUnsaved) {
-      const confirmLoad = await CustomAppModal.confirm(
-          "Anda mempunyai data yang belum disimpan. Muatkan rekod ini akan menulis semula borang. Teruskan?",
-          "Data Belum Simpan",
-          "warning",
-          "Ya, Teruskan",
-          true
-      );
-      if (!confirmLoad) return;
-      
-      await resetFormForEdit();
+        const confirmLoad = await CustomAppModal.confirm(
+            "Anda mempunyai data yang belum disimpan. Muatkan rekod ini akan menulis semula borang. Teruskan?",
+            "Data Belum Simpan",
+            "warning",
+            "Ya, Teruskan",
+            true
+        );
+        if (!confirmLoad) return;
+        
+        await resetFormForEdit();
     } 
-    // Jika tiada data belum simpan, tanya adakah pasti mahu edit (Info)
+    // Jika tiada data belum simpan, tanya pengesahan edit biasa
     else {
-      const finalConfirm = await CustomAppModal.confirm(
-          "Adakah anda pasti mahu mengedit rekod ini?", 
-          "Edit Rekod", 
-          "info",
-          "Ya, Edit",
-          false
-      );
-      if(!finalConfirm) return;
+        const finalConfirm = await CustomAppModal.confirm(
+            "Adakah anda pasti mahu mengedit rekod ini?", 
+            "Edit Rekod", 
+            "info",
+            "Ya, Edit",
+            false
+        );
+        if(!finalConfirm) return;
     }
 
+    // =========================================================================
+    // BAHAGIAN D: LOGIK BACA DATA JSON (DATA BORANG SEMAKAN TERSIMPAN)
+    // =========================================================================
+    if (item.checker_json && item.checker_json.trim() !== "") {
+        try {
+            const data = JSON.parse(item.checker_json);
+            
+            // A. Isi maklumat tarikh dan syor pengesyor
+            const tLengkap = document.getElementById('borang_tarikh_lengkap');
+            const sPengesyor = document.getElementById('borang_syor_pengesyor');
+            if(tLengkap) tLengkap.value = data.tarikh_lengkap || "";
+            if(sPengesyor) sPengesyor.value = data.syor_pengesyor || "";
+            
+            // B. Pulihkan Tandatangan Digital yang disimpan
+            const sigSaved = document.getElementById('sig-image-saved');
+            const drawArea = document.getElementById('drawSigArea');
+            const typeArea = document.getElementById('typeSigArea');
+            const radios = document.querySelectorAll('input[name="sigMode"]');
+            const sigCanvas = document.getElementById('sig-canvas');
+            
+            if (data.signature && sigSaved) {
+                sigSaved.src = data.signature;
+                sigSaved.style.display = 'block';
+                if(drawArea) drawArea.style.display = 'none';
+                if(typeArea) typeArea.style.display = 'none';
+                if(sigCanvas) sigCanvas.style.display = 'none';
+                radios.forEach(r => r.disabled = true); // Kunci mod supaya tidak sengaja tertukar
+            }
+            
+            // C. Pulihkan Cop Digital yang disimpan
+            const stampSaved = document.getElementById('stamp-image-saved');
+            const stampCanvas = document.getElementById('stamp-canvas');
+            if (data.stamp && stampSaved) {
+                stampSaved.src = data.stamp;
+                stampSaved.style.display = 'block';
+                if(stampCanvas) stampCanvas.style.display = 'none';
+            }
+            
+            // D. Set maklumat asas syarikat
+            document.getElementById('db_row_index').value = item.row || '';
+            document.getElementById('borang_syarikat').value = item.syarikat || '';
+            document.getElementById('db_syarikat').value = item.syarikat || '';
+            document.getElementById('borang_cidb').value = item.cidb || '';
+            document.getElementById('db_cidb').value = item.cidb || '';
+
+            // E. Masuk terus ke tab Borang Semakan
+            switchTab('stb');
+            
+            // Tamatkan fungsi di sini supaya ia tidak menjalankan logik fallback di bawah
+            return; 
+        } catch (e) {
+            console.error("V6.5.2 Gagal memproses JSON borang semakan:", e);
+        }
+    }
+
+    // =========================================================================
+    // LOGIK FALLBACK: JIKA TIADA DATA JSON (REKOD BARU / LAMA)
+    // Akan mengisi maklumat ke Tab Input Database
+    // =========================================================================
     document.getElementById('db_row_index').value = item.row || '';
     document.getElementById('db_syarikat').value = item.syarikat || '';
     document.getElementById('db_cidb').value = item.cidb || '';
@@ -8166,6 +8357,7 @@ Sila semak sistem STB untuk tindakan selanjutnya.`;
       if (el) el.value = item.alamat_perniagaan;
     }
 
+    // Set Konsultansi
     if (item.jenis_konsultansi) {
       document.querySelectorAll('.konsultansi-checkbox').forEach(cb => { cb.checked = false; });
       document.querySelectorAll('.konsultansi-date').forEach(d => { d.value = ''; d.style.display = 'none'; });
@@ -8240,7 +8432,10 @@ Sila semak sistem STB untuk tindakan selanjutnya.`;
         dbLawatanSyor.value = item.lawatan_syor;
       }
     }
-    
+
+    // Akhir sekali, buka tab Database
+    switchTab('db');
+}
     // === SET STATUS & PAPARAN SPI ===
     const dbStatusHantarSpi = document.getElementById('db_status_hantar_spi');
     if (dbStatusHantarSpi) {
@@ -8907,6 +9102,18 @@ Sila semak sistem STB untuk tindakan selanjutnya.`;
         }
       }
 
+      // =========================================================================
+      // KOD BARU: Ambil JSON sedia ada dan tambah signature & cop Pelulus
+      // =========================================================================
+      let existingJson = {};
+      if (pelulusActiveItem.checker_json && pelulusActiveItem.checker_json.trim() !== "") {
+          try { existingJson = JSON.parse(pelulusActiveItem.checker_json); } catch(e) {}
+      }
+      
+      // Ambil gambar dari canvas pelulus
+      existingJson.pelulus_signature = document.getElementById('sig-canvas-pelulus')?.toDataURL('image/png') || "";
+      existingJson.pelulus_stamp = document.getElementById('stamp-canvas-pelulus')?.toDataURL('image/png') || "";
+
       // 6. Sediakan data untuk dihantar
       const payload = {
         row: pelulusActiveItem.row || '',
@@ -8918,7 +9125,8 @@ Sila semak sistem STB untuk tindakan selanjutnya.`;
         justifikasi_baru: justifikasiPelulus,
         date_submit_baru: dateSpiPelulus,
         hantar_emel_spi_pemutihan: confirmSpiPemutihan,
-        email: currentUser ? currentUser.email : '' // <-- TAMBAH INI
+        checker_json: JSON.stringify(existingJson), // <--- HANTAR JSON YG TELAH DIKEMASKINI
+        email: currentUser ? currentUser.email : ''
       };
       
       // 7. Hantar data ke pelayan (server)
@@ -8928,10 +9136,6 @@ Sila semak sistem STB untuk tindakan selanjutnya.`;
         // Pop-up animasi menandakan kejayaan
         await CustomAppModal.alert("Keputusan pelulus BERJAYA direkodkan.", "Selesai", "success");
         
-        if (result.status === 'success') {
-          await playSuccessSound();
-        }
-        
         // Kemas kini data dalam memori supaya jadual terkini
         if (cachedData && cachedData.length > 0) {
           const index = cachedData.findIndex(d => d.row === pelulusActiveItem.row);
@@ -8940,6 +9144,7 @@ Sila semak sistem STB untuk tindakan selanjutnya.`;
             cachedData[index].alasan = payload.alasan;
             cachedData[index].tarikh_lulus = payload.tarikh_lulus;
             cachedData[index].pelulus = payload.pelulus;
+            cachedData[index].checker_json = payload.checker_json; // Kemaskini cache JSON juga
           }
         }
         
@@ -10324,6 +10529,181 @@ Sila semak sistem STB untuk tindakan selanjutnya.`;
           </tr>
       `).join('');
   }
+  // 1. Canvas Tandatangan
+  const sigCanvas = document.getElementById('sig-canvas');
+  let sigCtx = null, isDrawingSig = false;
+
+  if (sigCanvas) {
+      sigCtx = sigCanvas.getContext('2d');
+      sigCanvas.width = 300; sigCanvas.height = 120;
+      sigCanvas.addEventListener('mousedown', (e) => { isDrawingSig = true; drawSig(e); });
+      sigCanvas.addEventListener('mousemove', drawSig);
+      window.addEventListener('mouseup', () => { isDrawingSig = false; if(sigCtx) sigCtx.beginPath(); });
+  }
+
+  function drawSig(e) {
+      if (!isDrawingSig || !sigCtx) return;
+      const rect = sigCanvas.getBoundingClientRect();
+      const scaleX = sigCanvas.width / rect.width, scaleY = sigCanvas.height / rect.height;
+      sigCtx.lineWidth = 3; sigCtx.lineCap = 'round'; sigCtx.strokeStyle = '#0f172a';
+      sigCtx.lineTo((e.clientX - rect.left) * scaleX, (e.clientY - rect.top) * scaleY);
+      sigCtx.stroke(); sigCtx.beginPath();
+      sigCtx.moveTo((e.clientX - rect.left) * scaleX, (e.clientY - rect.top) * scaleY);
+  }
+
+  document.getElementById('sig-clear-btn')?.addEventListener('click', () => {
+      if (sigCtx) sigCtx.clearRect(0, 0, sigCanvas.width, sigCanvas.height);
+  });
+
+  const sigTypeInput = document.getElementById('sig-type-input');
+  const typeCanvas = document.getElementById('sig-type-canvas');
+  let typeCtx = typeCanvas ? typeCanvas.getContext('2d') : null;
+  if (typeCanvas) { typeCanvas.width = 300; typeCanvas.height = 80; }
+
+  if (sigTypeInput) {
+      sigTypeInput.addEventListener('input', () => {
+          if (!typeCtx) return;
+          typeCtx.clearRect(0, 0, typeCanvas.width, typeCanvas.height);
+          typeCtx.font = 'italic 40px "Brush Script MT", "Caveat", cursive, serif';
+          typeCtx.fillStyle = '#1e3a8a'; typeCtx.textAlign = 'center'; typeCtx.textBaseline = 'middle';
+          typeCtx.fillText(sigTypeInput.value, typeCanvas.width / 2, typeCanvas.height / 2);
+      });
+  }
+
+  document.querySelectorAll('input[name="sigMode"]').forEach(radio => {
+      radio.addEventListener('change', (e) => {
+          document.getElementById('drawSigArea').style.display = e.target.value === 'draw' ? 'block' : 'none';
+          document.getElementById('typeSigArea').style.display = e.target.value === 'type' ? 'block' : 'none';
+      });
+  });
+
+  // 2. Jana Cop Automatik
+  window.generateOfficialStamp = function() {
+      if (!currentUser) return;
+      const canvases = ['stamp-canvas', 'stamp-canvas-pelulus'];
+      
+      canvases.forEach(id => {
+          const stampCanvas = document.getElementById(id);
+          if (!stampCanvas) return;
+          
+          const ctx = stampCanvas.getContext('2d');
+          stampCanvas.width = 300; stampCanvas.height = 120;
+          ctx.clearRect(0, 0, stampCanvas.width, stampCanvas.height);
+
+          const stampColor = '#4338ca'; 
+          ctx.strokeStyle = stampColor; ctx.lineWidth = 4; ctx.strokeRect(5, 5, 290, 110);
+          ctx.lineWidth = 1; ctx.strokeRect(10, 10, 280, 100);
+
+          ctx.fillStyle = stampColor; ctx.textAlign = 'center';
+          
+          const namaPaparan = (currentUser.nama_penuh || currentUser.name || '').toUpperCase();
+          if (namaPaparan.length > 30) ctx.font = 'bold 10px Arial';
+          else if (namaPaparan.length > 22) ctx.font = 'bold 12px Arial';
+          else ctx.font = 'bold 14px Arial';
+          ctx.fillText(namaPaparan, 150, 35);
+
+          ctx.font = '12px Arial'; ctx.fillText((currentUser.jawatan || 'PEGAWAI PENILAI').toUpperCase(), 150, 60);
+          if (currentUser.gred_user) ctx.fillText(`(${currentUser.gred_user.toUpperCase()})`, 150, 80);
+          ctx.font = 'bold 12px Arial'; ctx.fillText((currentUser.jabatan || 'KUSKOP').toUpperCase(), 150, 100);
+      });
+  };
+
+  // Setup Canvas Tandatangan Pelulus
+  const sigCanvasPelulus = document.getElementById('sig-canvas-pelulus');
+  let sigCtxPelulus = null, isDrawingSigPelulus = false;
+
+  if (sigCanvasPelulus) {
+      sigCtxPelulus = sigCanvasPelulus.getContext('2d');
+      sigCanvasPelulus.width = 300; sigCanvasPelulus.height = 120;
+      sigCanvasPelulus.addEventListener('mousedown', (e) => { isDrawingSigPelulus = true; drawSigPelulus(e); });
+      sigCanvasPelulus.addEventListener('mousemove', drawSigPelulus);
+      window.addEventListener('mouseup', () => { isDrawingSigPelulus = false; if(sigCtxPelulus) sigCtxPelulus.beginPath(); });
+  }
+
+  function drawSigPelulus(e) {
+      if (!isDrawingSigPelulus || !sigCtxPelulus) return;
+      const rect = sigCanvasPelulus.getBoundingClientRect();
+      const scaleX = sigCanvasPelulus.width / rect.width, scaleY = sigCanvasPelulus.height / rect.height;
+      sigCtxPelulus.lineWidth = 3; sigCtxPelulus.lineCap = 'round'; sigCtxPelulus.strokeStyle = '#0f172a';
+      sigCtxPelulus.lineTo((e.clientX - rect.left) * scaleX, (e.clientY - rect.top) * scaleY);
+      sigCtxPelulus.stroke(); sigCtxPelulus.beginPath();
+      sigCtxPelulus.moveTo((e.clientX - rect.left) * scaleX, (e.clientY - rect.top) * scaleY);
+  }
+
+  document.getElementById('sig-clear-btn-pelulus')?.addEventListener('click', () => {
+      if (sigCtxPelulus) sigCtxPelulus.clearRect(0, 0, sigCanvasPelulus.width, sigCanvasPelulus.height);
+  });
+  // =========================================================================
+  // C. LOGIK BUTANG "SIMPAN KE SHEET JSON"
+  // =========================================================================
+  const btnSaveToSheetJSON = document.getElementById('btnSaveToSheetJSON');
+  if (btnSaveToSheetJSON) {
+      btnSaveToSheetJSON.addEventListener('click', async () => {
+          const companyName = document.getElementById('borang_syarikat')?.value;
+          const rowIndex = document.getElementById('db_row_index')?.value;
+          
+          if (!companyName) {
+              await CustomAppModal.alert("Sila isi Nama Syarikat di Borang Semakan terlebih dahulu!", "Maklumat Diperlukan", "warning");
+              return;
+          }
+          
+          // Tentukan canvas tandatangan mana yang aktif (Lukis atau Tulis)
+          const sigMode = document.querySelector('input[name="sigMode"]:checked')?.value || 'draw';
+          let finalSignatureBase64 = "";
+          
+          if (sigMode === 'draw') {
+              const sCanvas = document.getElementById('sig-canvas');
+              finalSignatureBase64 = sCanvas ? sCanvas.toDataURL('image/png') : "";
+          } else {
+              const tCanvas = document.getElementById('sig-type-canvas');
+              finalSignatureBase64 = tCanvas ? tCanvas.toDataURL('image/png') : "";
+          }
+
+          // Dapatkan Cop Automatik dari canvas
+          const stampCanvas = document.getElementById('stamp-canvas');
+          let finalStampBase64 = stampCanvas ? stampCanvas.toDataURL('image/png') : "";
+
+          // Kumpul data untuk disimpan dalam format JSON
+          const checkerData = {
+              tarikh_lengkap: document.getElementById('borang_tarikh_lengkap')?.value || "",
+              syor_pengesyor: document.getElementById('borang_syor_pengesyor')?.value || "",
+              signature: finalSignatureBase64,
+              stamp: finalStampBase64
+          };
+          
+          const payload = {
+              action: rowIndex ? 'updateRecord' : 'insertRecord',
+              row: rowIndex || '',
+              syarikat: companyName,
+              checker_json: JSON.stringify(checkerData),
+              email: currentUser.email
+          };
+
+          simulateLoadingWithSteps(['Menyimpan rekod tandatangan & cop...', 'Mengemaskini pangkalan data...'], 'Menyimpan Data Borang');
+          
+          try {
+              const res = await fetchWithRetry(SCRIPT_URL, {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                  body: JSON.stringify(payload)
+              }, 3, 1000);
+              
+              const result = await res.json();
+              hideLoading();
+              
+              if(result.status === 'success') {
+                  if (result.row) document.getElementById('db_row_index').value = result.row;
+                  await playSuccessSound();
+                  CustomAppModal.alert("Data semakan, tandatangan, dan cop digital telah berjaya disimpan ke pangkalan data!", "Berjaya", "success");
+              } else {
+                  throw new Error(result.message);
+              }
+          } catch(err) {
+              hideLoading();
+              CustomAppModal.alert("Gagal menyimpan data: " + err.message, "Ralat", "error");
+          }
+      });
+  }
   // =========================================================================
   // KAWALAN KEMBALI KE DB DARI PROFILE
   // =========================================================================
@@ -10416,6 +10796,18 @@ Sila semak sistem STB untuk tindakan selanjutnya.`;
           container.appendChild(card);
       });
   }
+    window.initGoogleMaps = function() {
+      const options = { componentRestrictions: { country: 'my' }, fields: ['formatted_address', 'name'] };
+      
+      const dbAlamat = document.getElementById('db_alamat_perniagaan');
+      if (dbAlamat) new google.maps.places.Autocomplete(dbAlamat, options);
+
+      const pAlamat1 = document.getElementById('profile_alamat_berdaftar');
+      if (pAlamat1) new google.maps.places.Autocomplete(pAlamat1, options);
+      
+      const pAlamat2 = document.getElementById('profile_alamat_surat');
+      if (pAlamat2) new google.maps.places.Autocomplete(pAlamat2, options);
+  };
 
 }); // <--- PENUTUP UTAMA UNTUK DOMContentLoaded
 

@@ -45,8 +45,8 @@ const ROLE_PENGARAH = "PENGARAH";
 const ROLE_KETUA_SEKSYEN = "KETUA_SEKSYEN";
 const ROLE_ADMIN = "ADMIN";
 
-// Jumlah lajur dalam sheet (A hingga AB = 28 lajur)
-const TOTAL_COLUMNS = 28;
+// Jumlah lajur dalam sheet (A hingga AC = 29 lajur)
+const TOTAL_COLUMNS = 29;
 
 // Email recipients for SPI notifications
 const EMAIL_TO_SPI = "suhaizal@kuskop.gov.my,hairul.ab@kuskop.gov.my";
@@ -204,11 +204,17 @@ function findUserByEmail(email) {
     const headers = data.shift();
     // Cari indeks lajur berdasarkan nama header
     const nameColIndex = headers.findIndex(h => h && h.toString().toUpperCase().includes('NAMA'));
-    const emailColIndex = headers.findIndex(h => h && (h.toString().toUpperCase().includes('EMEL') || h.toString().toUpperCase().includes('EMAIL') || h.toString().toUpperCase().includes('E-MEL')));
+    const emailColIndex = headers.findIndex(h => h && (h.toString().toUpperCase().includes('EMEL') || h.toString().toUpperCase().includes('EMAIL')));
     const roleColIndex = headers.findIndex(h => h && h.toString().toUpperCase().includes('ROLE'));
     const colorColIndex = headers.findIndex(h => h && (h.toString().toUpperCase().includes('WARNA') || h.toString().toUpperCase().includes('COLOR')));
-    const phoneColIndex = headers.findIndex(h => h && (h.toString().toUpperCase().includes('TELEFON') || h.toString().toUpperCase().includes('PHONE') || h.toString().toUpperCase().includes('NO TEL')));
-    
+    const phoneColIndex = headers.findIndex(h => h && (h.toString().toUpperCase().includes('TELEFON') || h.toString().toUpperCase().includes('PHONE')));
+
+    // --- KOD BARU UNTUK COP & NAMA PENUH ---
+    const jawatanColIndex = headers.findIndex(h => h && h.toString().toUpperCase().includes('JAWATAN'));
+    const gredUserColIndex = headers.findIndex(h => h && h.toString().toUpperCase() === 'GRED');
+    const jabatanColIndex = headers.findIndex(h => h && h.toString().toUpperCase().includes('JABATAN'));
+    const namaPenuhColIndex = headers.findIndex(h => h && h.toString().toUpperCase().includes('NAMA PENUH'));
+
     const finalNameIndex = nameColIndex !== -1 ? nameColIndex : 0;
     const finalEmailIndex = emailColIndex !== -1 ? emailColIndex : 1;
     const finalRoleIndex = roleColIndex !== -1 ? roleColIndex : 2;
@@ -230,11 +236,15 @@ function findUserByEmail(email) {
         
         const user = {
           name: safeGet(finalNameIndex),
+          nama_penuh: safeGet(namaPenuhColIndex !== -1 ? namaPenuhColIndex : finalNameIndex),
           email: safeGet(finalEmailIndex),
           role: safeGet(finalRoleIndex).toUpperCase(),
           color: safeGet(finalColorIndex),
           phone: safeGet(finalPhoneIndex),
-          imageUrl: safeGet(finalImageIndex)
+          imageUrl: safeGet(finalImageIndex),
+          jawatan: safeGet(jawatanColIndex !== -1 ? jawatanColIndex : -1),
+          gred_user: safeGet(gredUserColIndex !== -1 ? gredUserColIndex : -1),
+          jabatan: safeGet(jabatanColIndex !== -1 ? jabatanColIndex : -1)
         };
 
         Logger.log(`[V6.5.0] Pengguna dijumpai: ${user.name} (${user.email}) - Role: ${user.role}`);
@@ -971,6 +981,7 @@ function sendAutoEmailSPI(data) {
     
     // Dapatkan pautan dokumen
     const pautan = data.pautan || 'Tiada pautan';
+    const mapLink = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(alamatPerniagaan)}`;
     
     // Semak jika ini adalah permohonan pemutihan
     const isPemutihan = data.syor_lawatan && data.syor_lawatan.toString().toUpperCase() === 'PEMUTIHAN';
@@ -1040,7 +1051,7 @@ function sendAutoEmailSPI(data) {
         
         <div class="info-row">
           <div class="info-label">Alamat Perniagaan Syarikat:</div>
-          <div class="info-value">📍 ${alamatPerniagaan}</div>
+          <div class="info-value">📍 ${alamatPerniagaan}<br><a href="${mapLink}" style="display: inline-block; margin-top: 5px; font-size: 12px; color: #1a73e8; text-decoration: none; font-weight: bold;">🗺️ Lihat di Google Maps</a></div>
         </div>
         
         <div class="info-row">
@@ -1231,7 +1242,16 @@ function handleCetakDanSimpanPDF(data) {
     `;
 
     const blob = Utilities.newBlob(validHtmlContent, MimeType.HTML).getAs(MimeType.PDF);
-    const fileName = `Borang_Semakan_${data.company_name}.pdf`;
+    
+    // LOGIK VERSI NAMA FAIL
+    let versionSuffix = "";
+    if (data.is_lengkap === true || data.is_lengkap === "true") {
+      versionSuffix = " (LENGKAP)";
+    } else if (data.is_telah_syor === true || data.is_telah_syor === "true") {
+      versionSuffix = " (TELAH SYOR)";
+    }
+    
+    const fileName = `Borang_Semakan_${data.company_name}${versionSuffix}.pdf`;
     blob.setName(fileName);
     
     const pdfFile = typeFolder.createFile(blob);
@@ -1338,6 +1358,11 @@ function handleUpdateRecord(data, sheet) {
         data.ubah_gred !== undefined ? data.ubah_gred : currentPelulus[3]
       ];
       rangePelulus.setValues([updatedPelulus]);
+    }
+    
+    // BLOK BARU: Lajur AC (29) untuk simpanan JSON
+    if (data.checker_json !== undefined) {
+      sheet.getRange(rowNum, 29).setValue(data.checker_json);
     }
     
     // AUTO EMAIL LOGIC
@@ -1472,7 +1497,7 @@ function handleInsertNewRecord(data, sheet, shouldCreateFolder) {
       }
     }
     
-    // Susunan kolum: A-O (1-15) | P-Q (16-17) STATUS & TARIKH HANTAR SPI | R-X (18-24) | Y-AB (25-28)
+    // Susunan kolum: A-O (1-15) | P-Q (16-17) STATUS & TARIKH HANTAR SPI | R-X (18-24) | Y-AB (25-28) | AC (29)
     const newRow = [
       // A-O (Kolum 1-15)
       data.syarikat||"", data.cidb||"", data.gred||"", data.jenis||"", 
@@ -1496,7 +1521,8 @@ function handleInsertNewRecord(data, sheet, shouldCreateFolder) {
       data.tarikh_lulus||"", 
       data.pelulus||"",
       data.ubah_maklumat||"",         
-      data.ubah_gred||""
+      data.ubah_gred||"",
+      data.checker_json||"" // AC (Kolum 29 - Data JSON)
     ];
 
     const targetRange = sheet.getRange(targetRow, 1, 1, newRow.length);
@@ -1621,11 +1647,17 @@ function getUsersData() {
   
   const headers = data.shift();
   const nameColIndex = headers.findIndex(h => h && h.toString().toUpperCase().includes('NAMA'));
-  const emailColIndex = headers.findIndex(h => h && (h.toString().toUpperCase().includes('EMEL') || h.toString().toUpperCase().includes('EMAIL') || h.toString().toUpperCase().includes('E-MEL')));
+  const emailColIndex = headers.findIndex(h => h && (h.toString().toUpperCase().includes('EMEL') || h.toString().toUpperCase().includes('EMAIL')));
   const roleColIndex = headers.findIndex(h => h && h.toString().toUpperCase().includes('ROLE'));
   const colorColIndex = headers.findIndex(h => h && (h.toString().toUpperCase().includes('WARNA') || h.toString().toUpperCase().includes('COLOR')));
-  const phoneColIndex = headers.findIndex(h => h && (h.toString().toUpperCase().includes('TELEFON') || h.toString().toUpperCase().includes('PHONE') || h.toString().toUpperCase().includes('NO TEL')));
-  
+  const phoneColIndex = headers.findIndex(h => h && (h.toString().toUpperCase().includes('TELEFON') || h.toString().toUpperCase().includes('PHONE')));
+
+  // --- KOD BARU UNTUK COP & NAMA PENUH ---
+  const jawatanColIndex = headers.findIndex(h => h && h.toString().toUpperCase().includes('JAWATAN'));
+  const gredUserColIndex = headers.findIndex(h => h && h.toString().toUpperCase() === 'GRED');
+  const jabatanColIndex = headers.findIndex(h => h && h.toString().toUpperCase().includes('JABATAN'));
+  const namaPenuhColIndex = headers.findIndex(h => h && h.toString().toUpperCase().includes('NAMA PENUH'));
+
   const finalNameIndex = nameColIndex !== -1 ? nameColIndex : 0;
   const finalEmailIndex = emailColIndex !== -1 ? emailColIndex : 1;
   const finalRoleIndex = roleColIndex !== -1 ? roleColIndex : 2;
@@ -1635,7 +1667,18 @@ function getUsersData() {
 
   const users = data.map(row => {
     const safeGet = (index, defaultValue = '') => { return row && row[index] !== undefined && row[index] !== null ? String(row[index]).trim() : defaultValue; };
-    return { name: safeGet(finalNameIndex), email: safeGet(finalEmailIndex), role: safeGet(finalRoleIndex).toUpperCase(), color: safeGet(finalColorIndex), phone: safeGet(finalPhoneIndex), imageUrl: safeGet(finalImageIndex) };
+    return { 
+      name: safeGet(finalNameIndex), 
+      nama_penuh: safeGet(namaPenuhColIndex !== -1 ? namaPenuhColIndex : finalNameIndex),
+      email: safeGet(finalEmailIndex), 
+      role: safeGet(finalRoleIndex).toUpperCase(), 
+      color: safeGet(finalColorIndex), 
+      phone: safeGet(finalPhoneIndex), 
+      imageUrl: safeGet(finalImageIndex),
+      jawatan: safeGet(jawatanColIndex !== -1 ? jawatanColIndex : -1),
+      gred_user: safeGet(gredUserColIndex !== -1 ? gredUserColIndex : -1),
+      jabatan: safeGet(jabatanColIndex !== -1 ? jabatanColIndex : -1)
+    };
   }).filter(user => user.name !== "");
   return createJSONOutput(users);
 }
@@ -1799,7 +1842,9 @@ function getApplicationsData(role, userName) {
       alamat_perniagaan: row[20], jenis_konsultansi: row[21], alasan: row[22], 
       kelulusan: row[23],
       // Y-AB
-      tarikh_lulus: row[24], pelulus: row[25], ubah_maklumat: row[26], ubah_gred: row[27]
+      tarikh_lulus: row[24], pelulus: row[25], ubah_maklumat: row[26], ubah_gred: row[27],
+      // AC
+      checker_json: row[28] || ""
     };
   });
   
@@ -1977,7 +2022,7 @@ function testDeleteRecord() {
 }
 
 function testCetakDanSimpanPDF() {
-  const testData = { action: 'cetak_dan_simpan_pdf', htmlContent: '<div class="print-header"><h1>Borang Semakan</h1><p>Ini adalah kandungan ujian.</p></div>', company_name: 'SYARIKAT TEST', user_name: 'Zariff Fahmi', application_type: 'BARU - 21-04-2026', user_color: '#ff6b35' };
+  const testData = { action: 'cetak_dan_simpan_pdf', htmlContent: '<div class="print-header"><h1>Borang Semakan</h1><p>Ini adalah kandungan ujian.</p></div>', company_name: 'SYARIKAT TEST', user_name: 'Zariff Fahmi', application_type: 'BARU - 21-04-2026', user_color: '#ff6b35', is_lengkap: true };
   const result = handleCetakDanSimpanPDF(testData);
   console.log(result.getContent());
   return result;
@@ -2067,13 +2112,15 @@ function processPemutihanQueue() {
   let rowsHtml = '';
   let textList = '';
   queue.forEach((data, index) => {
+    const mapLink = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(data.alamat_perniagaan || '')}`;
+    
     rowsHtml += `
       <tr>
         <td style="padding:10px; border:1px solid #ddd; text-align:center;">${index + 1}</td>
         <td style="padding:10px; border:1px solid #ddd;"><strong>${data.syarikat}</strong></td>
         <td style="padding:10px; border:1px solid #ddd; text-align:center;">${data.cidb}</td>
         <td style="padding:10px; border:1px solid #ddd; text-align:center;">${data.gred}</td>
-        <td style="padding:10px; border:1px solid #ddd;">${data.alamat_perniagaan || 'Tiada'}</td>
+        <td style="padding:10px; border:1px solid #ddd;">${data.alamat_perniagaan || 'Tiada'}<br><a href="${mapLink}" style="display: inline-block; margin-top: 5px; font-size: 12px; color: #1a73e8; text-decoration: none; font-weight: bold;">🗺️ Lihat di Google Maps</a></td>
         <td style="padding:10px; border:1px solid #ddd;">${data.justifikasi || 'Tiada'}</td>
         <td style="padding:10px; border:1px solid #ddd; text-align:center;">${data.pengesyor}</td>
         <td style="padding:10px; border:1px solid #ddd; text-align:center;"><a href="${data.pautan}" style="color:#1a73e8; font-weight:bold;">Buka Drive</a></td>
@@ -2194,13 +2241,15 @@ function processSiasatQueue() {
   let textList = '';
   
   queue.forEach((data, index) => {
+    const mapLink = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(data.alamat_perniagaan || '')}`;
+    
     rowsHtml += `
       <tr>
         <td style="padding:10px; border:1px solid #ddd; text-align:center;">${index + 1}</td>
         <td style="padding:10px; border:1px solid #ddd;"><strong>${data.syarikat}</strong></td>
         <td style="padding:10px; border:1px solid #ddd; text-align:center;">${data.cidb}</td>
         <td style="padding:10px; border:1px solid #ddd; text-align:center;">${data.gred}</td>
-        <td style="padding:10px; border:1px solid #ddd;">${data.alamat_perniagaan || 'Tiada'}</td>
+        <td style="padding:10px; border:1px solid #ddd;">${data.alamat_perniagaan || 'Tiada'}<br><a href="${mapLink}" style="display: inline-block; margin-top: 5px; font-size: 12px; color: #1a73e8; text-decoration: none; font-weight: bold;">🗺️ Lihat di Google Maps</a></td>
         <td style="padding:10px; border:1px solid #ddd;">${data.justifikasi || 'Tiada'}</td>
         <td style="padding:10px; border:1px solid #ddd; text-align:center;">${data.pengesyor}</td>
         <td style="padding:10px; border:1px solid #ddd; text-align:center;"><a href="${data.pautan}" style="color:#1a73e8; font-weight:bold;">Buka Drive</a></td>
