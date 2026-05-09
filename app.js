@@ -8459,7 +8459,7 @@ Sila semak sistem STB untuk tindakan selanjutnya.`;
 
     // Akhir sekali, buka tab Database
     switchTab('db');
-}
+
     // === SET STATUS & PAPARAN SPI ===
     const dbStatusHantarSpi = document.getElementById('db_status_hantar_spi');
     if (dbStatusHantarSpi) {
