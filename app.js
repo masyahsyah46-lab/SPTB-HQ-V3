@@ -10816,9 +10816,9 @@ Sila semak sistem STB untuk tindakan selanjutnya.`;
               pc.style.display = 'block';
               mp.src = `https://www.youtube.com/embed/${item.id.videoId}?autoplay=1`;
               window.scrollTo({ top: pc.offsetTop - 50, behavior: 'smooth' });
-          };
-          container.appendChild(card);
- }); ✅ // <--- Tambah ); di sini untuk menutup items.forEach(item => {
-} // <--- Pastikan ada satu lagi } di bawahnya untuk menutup fungsi displayYoutubeResults
+    };
+    container.appendChild(card);
+  });
+}
 
 console.log("STB System V6.5.2 - Web App JS loaded successfully");
