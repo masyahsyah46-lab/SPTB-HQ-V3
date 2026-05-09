@@ -1611,56 +1611,82 @@
                 <div class="kwsp-row"><div style="display:flex; gap:5px; flex-wrap: wrap;"><input type="month" id="kwsp_date_3" style="flex: 2;"><div class="status-input-container" style="flex: 1;"><input type="text" id="kwsp_s3" class="status-input" maxlength="10" placeholder="Status"><div class="tick-buttons"><button type="button" class="tick-btn tick-right" title="Set OK">✓</button><button type="button" class="tick-btn tick-wrong" title="Set X">✗</button></div></div></div></div>
             </div>
 
-            <div class="actions">
-    <button class="btn btn-reset" id="btnResetTab2">RESET BORANG</button>
-    <div style="flex-grow:1;"></div>
-    <button id="triggerPrintBtn" class="btn btn-print" style="opacity: 0.4; pointer-events: none;" title="Sila Simpan Data JSON dahulu">🖨️ Cetak</button>
-    <button class="btn btn-blue" id="btnSyncToDb" style="display:none; opacity: 0.4; pointer-events: none;" title="Sila Simpan Data JSON dahulu">Simpan & Ke Input Database »</button>
-</div>
-
-<div class="card" style="border-top-color: #8b5cf6;">
-    <h2>✍️ Pengesahan & Syor Pengesyor</h2>
-    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;">
-        <div>
-            <label>Tarikh Dokumen Lengkap</label>
-            <input type="date" id="borang_tarikh_lengkap">
-        </div>
-        <div>
-            <label>Tarikh Proses (Tandatangan)</label>
-            <input type="date" id="borang_tarikh_proses">
-        </div>
-        <div>
-            <label>Syor Pengesyor</label>
-            <select id="borang_syor_pengesyor">
-                <option value="">- PILIH SYOR -</option>
-                <option value="SOKONG">SOKONG</option>
-                <option value="TIDAK DISOKONG">TIDAK DISOKONG</option>
-            </select>
-        </div>
-    </div>
-    
-    <div style="margin-top: 25px; display: flex; flex-direction: column; align-items: center;">
-        <div style="border: 1px solid #cbd5e1; padding: 15px; border-radius: 12px; background: #f8fafc; text-align: center; width: 100%; max-width: 500px;">
-            <label style="color: #1e40af; font-size: 1rem; border-bottom: 2px solid #e2e8f0; padding-bottom: 8px; margin-bottom: 12px;">✍️ Tandatangan Digital</label>
-            
-            <div id="drawSigArea">
-                <div style="background: white; border: 1px dashed #94a3b8; height: 120px; border-radius: 8px; position: relative;">
-                    <canvas id="sig-canvas" style="width: 100%; height: 100%; cursor: crosshair;"></canvas>
+            <div class="card" style="border-top-color: #8b5cf6;">
+                <h2>✍️ Pengesahan & Syor Pengesyor</h2>
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;">
+                    <div>
+                        <label>Tarikh Dokumen Lengkap</label>
+                        <input type="date" id="borang_tarikh_lengkap">
+                    </div>
+                    <div>
+                        <label>Syor Pengesyor</label>
+                        <select id="borang_syor_pengesyor">
+                            <option value="">- PILIH SYOR -</option>
+                            <option value="SOKONG">SOKONG</option>
+                            <option value="TIDAK DISOKONG">TIDAK DISOKONG</option>
+                        </select>
+                    </div>
                 </div>
-                <button class="btn btn-white btn-sm" id="sig-clear-btn" style="margin-top: 8px;">Padam</button>
+                
+                <div id="signature_section" style="display: none; margin-top: 25px; border-top: 2px dashed #cbd5e1; padding-top: 20px;">
+                    
+                    <div style="background: #eff6ff; border: 1px solid #bfdbfe; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+                        <label style="display: flex; align-items: center; gap: 10px; cursor: pointer; color: #1e40af; font-weight: bold; font-size: 1rem; margin: 0;">
+                            <input type="checkbox" id="cb_sah_tarikh_proses" style="width: 22px; height: 22px; cursor: pointer;">
+                            Saya mengesahkan syor & tetapkan tarikh proses ke hari ini
+                        </label>
+                        <input type="hidden" id="borang_tarikh_proses">
+                    </div>
+
+                    <div id="area_tandatangan" style="display: none; flex-direction: column; align-items: center;">
+                        <div style="border: 1px solid #cbd5e1; padding: 15px; border-radius: 12px; background: #f8fafc; text-align: center; width: 100%; max-width: 500px;">
+                            <label style="color: #1e40af; font-size: 1rem; border-bottom: 2px solid #e2e8f0; padding-bottom: 8px; margin-bottom: 12px;">✍️ Tandatangan Digital</label>
+                            
+                            <div style="display: flex; justify-content: center; gap: 15px; margin-bottom: 15px;">
+                                <label style="cursor: pointer; font-weight: bold; color: #334155; display: flex; align-items: center; gap: 5px;">
+                                    <input type="radio" name="sigMode" value="draw" checked> 🖊️ Lukis
+                                </label>
+                                <label style="cursor: pointer; font-weight: bold; color: #334155; display: flex; align-items: center; gap: 5px;">
+                                    <input type="radio" name="sigMode" value="type"> ⌨️ Tulis Nama
+                                </label>
+                            </div>
+
+                            <div id="drawSigArea">
+                                <div style="background: white; border: 1px dashed #94a3b8; height: 120px; border-radius: 8px; position: relative;">
+                                    <canvas id="sig-canvas" style="width: 100%; height: 100%; cursor: crosshair;"></canvas>
+                                </div>
+                                <button class="btn btn-white btn-sm" id="sig-clear-btn" style="margin-top: 8px;">Padam Lukisan</button>
+                            </div>
+
+                            <div id="typeSigArea" style="display: none;">
+                                <input type="text" id="sig-type-input" placeholder="Taip nama anda di sini..." style="text-align: center; margin-bottom: 10px; font-weight: bold; text-transform: capitalize; width: 100%; padding: 10px; border: 2px solid #cbd5e1; border-radius: 8px; font-size: 1.1rem;">
+                                <div style="background: white; border: 1px dashed #94a3b8; height: 80px; border-radius: 8px; display: flex; align-items: center; justify-content: center;">
+                                    <canvas id="sig-type-canvas" style="width: 100%; height: 100%;"></canvas>
+                                </div>
+                            </div>
+                            
+                            <img id="sig-image-saved" style="display: none; max-height: 120px; width: auto; margin: 10px auto;">
+                        </div>
+                        
+                        <div style="display: none;">
+                            <canvas id="stamp-canvas"></canvas>
+                            <img id="stamp-image-saved">
+                        </div>
+
+                        <div style="margin-top: 20px; text-align: center; width: 100%;">
+                            <p style="font-size: 0.85rem; color: #ea580c; margin-bottom: 10px;">⚠️ Sila klik "Simpan Data JSON" untuk mengaktifkan butang Cetak & Input Database</p>
+                            <button class="btn btn-blue" id="btnSaveToSheetJSON" style="width: 100%; max-width: 500px; padding: 12px; font-size: 1.05rem;">💾 Simpan Data JSON Ke Sheet</button>
+                        </div>
+                    </div>
+                </div>
             </div>
-            
-            <div style="display: none;">
-                <canvas id="stamp-canvas"></canvas>
-                <img id="stamp-image-saved">
+
+            <div class="actions" style="margin-top: 30px; background: #f8fafc; padding: 15px; border-radius: 12px; border: 1px solid #e2e8f0; align-items: center;">
+                <button class="btn btn-reset" id="btnResetTab2" style="padding: 12px 20px;">RESET BORANG</button>
+                <div style="flex-grow:1;"></div>
+                <button id="triggerPrintBtn" class="btn btn-print" style="opacity: 0.4; pointer-events: none; padding: 12px 25px; font-size: 1.05rem;" title="Sila Simpan Data JSON dahulu">🖨️ Cetak</button>
+                <button class="btn btn-blue" id="btnSyncToDb" style="display:none; opacity: 0.4; pointer-events: none; padding: 12px 25px; font-size: 1.05rem;" title="Sila Simpan Data JSON dahulu">Simpan & Ke Input Database »</button>
             </div>
-        </div>
-    </div>
-    
-    <div style="margin-top: 20px; text-align: center;">
-        <button class="btn btn-blue" id="btnSaveToSheetJSON">💾 Simpan Data Borang Semakan ke Sheet</button>
-    </div>
-</div>
 
         <!-- TAB 2: INPUT DATABASE -->
         <div id="tab-database" class="tab-content no-print">

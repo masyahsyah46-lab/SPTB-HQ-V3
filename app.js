@@ -10865,6 +10865,86 @@ Sila semak sistem STB untuk tindakan selanjutnya.`;
     };
     container.appendChild(card);
   });
+  // =========================================================================
+    // LOGIK PAPARAN TANDATANGAN & TARIKH PROSES AUTOMATIK (V6.5.2)
+    // =========================================================================
+    const syorDropdown = document.getElementById('borang_syor_pengesyor');
+    const signatureSection = document.getElementById('signature_section');
+    const cbSahTarikh = document.getElementById('cb_sah_tarikh_proses');
+    const tarikhProsesInput = document.getElementById('borang_tarikh_proses');
+    const areaTandatangan = document.getElementById('area_tandatangan');
+
+    // 1. Apabila Syor dipilih, papar bahagian Checkbox & Tandatangan
+    if (syorDropdown) {
+        syorDropdown.addEventListener('change', (e) => {
+            if (e.target.value !== "") {
+                signatureSection.style.display = 'block';
+            } else {
+                signatureSection.style.display = 'none';
+                if (cbSahTarikh) cbSahTarikh.checked = false;
+                if (tarikhProsesInput) tarikhProsesInput.value = '';
+                if (areaTandatangan) areaTandatangan.style.display = 'none';
+            }
+        });
+    }
+
+    // 2. Apabila Checkbox ditekan, set tarikh hari ini & buka canvas Tandatangan
+    if (cbSahTarikh) {
+        cbSahTarikh.addEventListener('change', (e) => {
+            if (e.target.checked) {
+                const today = new Date();
+                const year = today.getFullYear();
+                const month = String(today.getMonth() + 1).padStart(2, '0');
+                const day = String(today.getDate()).padStart(2, '0');
+                
+                if (tarikhProsesInput) {
+                    tarikhProsesInput.value = `${year}-${month}-${day}`;
+                    tarikhProsesInput.dispatchEvent(new Event('input')); // Trigger save form
+                }
+                if (areaTandatangan) areaTandatangan.style.display = 'flex';
+            } else {
+                if (tarikhProsesInput) tarikhProsesInput.value = '';
+                if (areaTandatangan) areaTandatangan.style.display = 'none';
+            }
+        });
+    }
+
+    // 3. Pastikan data JSON yang diload membuka kotak yang sepatutnya
+    const originalLoadRecordToDbOnly = window.loadRecordToDbOnly;
+    window.loadRecordToDbOnly = async function(item) {
+        await originalLoadRecordToDbOnly(item);
+        
+        setTimeout(() => {
+            const dataSyor = document.getElementById('borang_syor_pengesyor')?.value;
+            const dataTarikhProses = document.getElementById('borang_tarikh_proses')?.value;
+            
+            if (dataSyor && dataSyor !== "") {
+                if (signatureSection) signatureSection.style.display = 'block';
+                
+                if (dataTarikhProses && dataTarikhProses !== "") {
+                    if (cbSahTarikh) cbSahTarikh.checked = true;
+                    if (areaTandatangan) areaTandatangan.style.display = 'flex';
+                }
+            }
+        }, 300);
+    };
+
+    // 4. Pastikan borang tertutup kembali apabila di-reset
+    const originalResetForm = window.resetForm;
+    window.resetForm = async function() {
+        await originalResetForm();
+        if (signatureSection) signatureSection.style.display = 'none';
+        if (cbSahTarikh) cbSahTarikh.checked = false;
+        if (areaTandatangan) areaTandatangan.style.display = 'none';
+    };
+    
+    const originalResetFormForEdit = window.resetFormForEdit;
+    window.resetFormForEdit = async function() {
+        await originalResetFormForEdit();
+        if (signatureSection) signatureSection.style.display = 'none';
+        if (cbSahTarikh) cbSahTarikh.checked = false;
+        if (areaTandatangan) areaTandatangan.style.display = 'none';
+    };
 }
 }); 
 
