@@ -141,7 +141,7 @@ function getAuthenticatedUserEmail(email) {
       return { 
         email: null, 
         isValid: false, 
-        error: 'Emel tidak disediakan. Sila pastikan anda telah log masuk dan menghantar emel yang sah.'
+        error: `Emel tidak disediakan. Sila pastikan anda telah log masuk dan menghantar emel yang sah.`
       };
     }
     

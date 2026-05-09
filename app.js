@@ -39,7 +39,7 @@ document.addEventListener('DOMContentLoaded', () => {
   let bakulUnsubscribe = null;
 
   // URL APPSCRIPT
-  const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxj6oSSi4Z2hB8u4MU-1rPcYc1ukNzjsFEwtkP5R9xGUYOX4oABUflnM8Flxk2MndtP/exec';
+  const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxQ43NUtZmo-g5LBsYvpJqImKmqAtIHKPuELkMmqWscgxSJcsHk4N3fZbJkx2Czsns9/exec';
   
   // Google Client ID
   const GOOGLE_CLIENT_ID = '758579492428-rnfev1nkkf2e6qduhujgtfbhudl2j9td.apps.googleusercontent.com';
@@ -10794,7 +10794,6 @@ Sila semak sistem STB untuk tindakan selanjutnya.`;
               window.scrollTo({ top: pc.offsetTop - 50, behavior: 'smooth' });
           };
           container.appendChild(card);
-      });
   }
     window.initGoogleMaps = function() {
       const options = { componentRestrictions: { country: 'my' }, fields: ['formatted_address', 'name'] };
