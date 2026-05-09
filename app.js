@@ -1,5 +1,30 @@
 // app.js - V6.5.2 (WEB APP VERSION)
 // (UPDATED: Auto Email Authentication, Removed PIN Login, Dynamic URL Routing, Anonymous Access, Mobile UI Polish, Unique ID, Fixed CORS & WhatsApp Popup, Pemutihan Email Confirmation, Ketua Seksyen Tab Fixes, GIS Integration)
+// LETAK DI BARIS PERTAMA FAIL APP.JS
+window.initGoogleMaps = function() {
+    // Balut logik ke dalam fungsi supaya ia boleh tunggu DOM bersedia
+    const setupMaps = () => {
+        if (typeof google === 'undefined' || !google.maps || !google.maps.places) return;
+        
+        const options = { componentRestrictions: { country: 'my' }, fields: ['formatted_address', 'name'] };
+        
+        const dbAlamat = document.getElementById('db_alamat_perniagaan');
+        if (dbAlamat) new google.maps.places.Autocomplete(dbAlamat, options);
+
+        const pAlamat1 = document.getElementById('profile_alamat_berdaftar');
+        if (pAlamat1) new google.maps.places.Autocomplete(pAlamat1, options);
+        
+        const pAlamat2 = document.getElementById('profile_alamat_surat');
+        if (pAlamat2) new google.maps.places.Autocomplete(pAlamat2, options);
+    };
+
+    // Pastikan elemen HTML siap di-load (tidak null) sebelum attach Google Maps
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', setupMaps);
+    } else {
+        setupMaps();
+    }
+};
 
 document.addEventListener('DOMContentLoaded', () => {
   console.log("STB Web App V6.5.2 Loaded - Auto Email Auth, Separated History Search, Dynamic Routing, Anonymous Access, Mobile Menu, Pemutihan Email & Ketua Seksyen Fixes, GIS Integration");
@@ -10794,18 +10819,6 @@ Sila semak sistem STB untuk tindakan selanjutnya.`;
           };
           container.appendChild(card);
   }
-    window.initGoogleMaps = function() {
-      const options = { componentRestrictions: { country: 'my' }, fields: ['formatted_address', 'name'] };
-      
-      const dbAlamat = document.getElementById('db_alamat_perniagaan');
-      if (dbAlamat) new google.maps.places.Autocomplete(dbAlamat, options);
-
-      const pAlamat1 = document.getElementById('profile_alamat_berdaftar');
-      if (pAlamat1) new google.maps.places.Autocomplete(pAlamat1, options);
-      
-      const pAlamat2 = document.getElementById('profile_alamat_surat');
-      if (pAlamat2) new google.maps.places.Autocomplete(pAlamat2, options);
-  };
 
 }); // <--- PENUTUP UTAMA UNTUK DOMContentLoaded
 
