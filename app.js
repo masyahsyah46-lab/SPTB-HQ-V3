@@ -1,13 +1,19 @@
 // app.js - V6.5.2 (WEB APP VERSION)
-// (UPDATED: Auto Email Authentication, Removed PIN Login, Dynamic URL Routing, Anonymous Access, Mobile UI Polish, Unique ID, Fixed CORS & WhatsApp Popup, Pemutihan Email Confirmation, Ketua Seksyen Tab Fixes, GIS Integration)
 // LETAK DI BARIS PERTAMA FAIL APP.JS
+
+// 1. Daftar fungsi inisialisasi pada objek tetingkap global (window)
 window.initGoogleMaps = function() {
-    // Balut logik ke dalam fungsi supaya ia boleh tunggu DOM bersedia
-    const setupMaps = () => {
-        if (typeof google === 'undefined' || !google.maps || !google.maps.places) return;
-        
-        const options = { componentRestrictions: { country: 'my' }, fields: ['formatted_address', 'name'] };
-        
+    console.log("V6.5.2 Mula menghubungkan Google Maps Autocomplete...");
+    
+    // Pastikan objek google maps tersedia
+    if (typeof google === 'undefined' || !google.maps || !google.maps.places) {
+        console.warn("V6.5.2 Objek Google Maps belum bersedia.");
+        return;
+    }
+    
+    const options = { componentRestrictions: { country: 'my' }, fields: ['formatted_address', 'name'] };
+    
+    const attachAutocomplete = () => {
         const dbAlamat = document.getElementById('db_alamat_perniagaan');
         if (dbAlamat) new google.maps.places.Autocomplete(dbAlamat, options);
 
@@ -16,15 +22,36 @@ window.initGoogleMaps = function() {
         
         const pAlamat2 = document.getElementById('profile_alamat_surat');
         if (pAlamat2) new google.maps.places.Autocomplete(pAlamat2, options);
+        
+        console.log("V6.5.2 Google Maps Autocomplete berjaya dihubungkan.");
     };
 
-    // Pastikan elemen HTML siap di-load (tidak null) sebelum attach Google Maps
+    // Pastikan elemen DOM siap sebelum menyambungkan Autocomplete
     if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', setupMaps);
+        document.addEventListener('DOMContentLoaded', attachAutocomplete);
     } else {
-        setupMaps();
+        attachAutocomplete();
     }
 };
+
+// 2. Fungsi untuk memuatkan skrip Google Maps SECARA DINAMIK
+function loadGoogleMapsDynamically() {
+    // Masukkan API Key anda di sini
+    const API_KEY = "AIzaSyC0FFQJJO6A0jrh5r1zqo1Bc9KqMFKjDpg"; 
+    
+    // Cipta elemen <script>
+    const script = document.createElement('script');
+    script.src = `https://maps.googleapis.com/maps/api/js?key=${API_KEY}&libraries=places&callback=initGoogleMaps`;
+    script.async = true;
+    script.defer = true;
+    
+    // Tampal skrip ke dalam <head>
+    document.head.appendChild(script);
+    console.log("V6.5.2 Skrip Google Maps mula dimuat turun...");
+}
+
+// 3. Panggil fungsi memuat turun sejurus pelayar membaca fail ini
+loadGoogleMapsDynamically();
 
 document.addEventListener('DOMContentLoaded', () => {
   console.log("STB Web App V6.5.2 Loaded - Auto Email Auth, Separated History Search, Dynamic Routing, Anonymous Access, Mobile Menu, Pemutihan Email & Ketua Seksyen Fixes, GIS Integration");
