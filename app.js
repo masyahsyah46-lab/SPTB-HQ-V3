@@ -10818,8 +10818,7 @@ Sila semak sistem STB untuk tindakan selanjutnya.`;
               window.scrollTo({ top: pc.offsetTop - 50, behavior: 'smooth' });
           };
           container.appendChild(card);
-  }
-
-}); // <--- PENUTUP UTAMA UNTUK DOMContentLoaded
+ }); ✅ // <--- Tambah ); di sini untuk menutup items.forEach(item => {
+} // <--- Pastikan ada satu lagi } di bawahnya untuk menutup fungsi displayYoutubeResults
 
 console.log("STB System V6.5.2 - Web App JS loaded successfully");
