@@ -6410,8 +6410,7 @@ Sila semak sistem STB untuk tindakan selanjutnya.`;
         console.log("V6.5.2 Senarai Pelulus berjaya dikemaskini:", users.length);
       })
       .catch(err => console.error("V6.5.2 Gagal muat turun senarai pengguna:", err));
-    // ---------------------------------------------------------
-  }
+    //
 
   async function initAppBasedOnRole() {
     if (!tabsContainer) return;
