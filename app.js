@@ -5,7 +5,6 @@
 window.initGoogleMaps = function() {
     console.log("V6.5.2 Mula menghubungkan Google Maps Autocomplete...");
     
-    // Pastikan objek google maps tersedia
     if (typeof google === 'undefined' || !google.maps || !google.maps.places) {
         console.warn("V6.5.2 Objek Google Maps belum bersedia.");
         return;
@@ -14,19 +13,23 @@ window.initGoogleMaps = function() {
     const options = { componentRestrictions: { country: 'my' }, fields: ['formatted_address', 'name'] };
     
     const attachAutocomplete = () => {
-        const dbAlamat = document.getElementById('db_alamat_perniagaan');
-        if (dbAlamat) new google.maps.places.Autocomplete(dbAlamat, options);
+        // Jaring Keselamatan: Pastikan elemen itu wujud dan merupakan tag <INPUT>
+        const bindMap = (id) => {
+            const el = document.getElementById(id);
+            if (el && el.tagName === 'INPUT') {
+                new google.maps.places.Autocomplete(el, options);
+            } else if (el) {
+                console.warn(`V6.5.2: Elemen '${id}' bukan <input>. Google Maps Autocomplete diabaikan untuk ruangan ini.`);
+            }
+        };
 
-        const pAlamat1 = document.getElementById('profile_alamat_berdaftar');
-        if (pAlamat1) new google.maps.places.Autocomplete(pAlamat1, options);
-        
-        const pAlamat2 = document.getElementById('profile_alamat_surat');
-        if (pAlamat2) new google.maps.places.Autocomplete(pAlamat2, options);
+        bindMap('db_alamat_perniagaan');
+        bindMap('profile_alamat_berdaftar');
+        bindMap('profile_alamat_surat');
         
         console.log("V6.5.2 Google Maps Autocomplete berjaya dihubungkan.");
     };
 
-    // Pastikan elemen DOM siap sebelum menyambungkan Autocomplete
     if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', attachAutocomplete);
     } else {
