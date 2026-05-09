@@ -5515,28 +5515,31 @@ Sila semak sistem STB untuk tindakan selanjutnya.`;
         if(stampCanvas) printStampImage = stampCanvas.toDataURL('image/png');
     }
 
+    // KEMASKINI: Susun Tandatangan di atas Cop
     const signBox = document.querySelector('.pengesyor-sign-box');
     if (signBox) {
-        const sigHtml = (printSigImage && printSigImage.length > 100) ? `<img src="${printSigImage}" style="height: 60px; object-fit: contain;">` : '';
+        const sigHtml = (printSigImage && printSigImage.length > 100) ? `<img src="${printSigImage}" style="height: 60px; object-fit: contain; margin-bottom: 5px;">` : '';
         const stampHtml = (printStampImage && printStampImage.length > 100) ? `<img src="${printStampImage}" style="height: 60px; object-fit: contain;">` : '';
 
         signBox.innerHTML = `
-            <div style="display: flex; flex-direction: column; align-items: center; justify-content: flex-end; height: 120px;">
-                <div style="display: flex; gap: 10px; margin-bottom: 5px;">
-                    ${sigHtml}
-                    ${stampHtml}
-                </div>
-                <div style="border-top: 1px solid #000; width: 100%; padding-top: 2px;">(Tandatangan & Cop Pengesyor)</div>
+            <div style="display: flex; flex-direction: column; align-items: center; justify-content: flex-end; min-height: 120px;">
+                ${sigHtml}
+                ${stampHtml}
+                <div style="border-top: 1px solid #000; width: 100%; padding-top: 2px; margin-top: 5px;">(Tandatangan & Cop Pengesyor)</div>
             </div>
         `;
     }
 
+    // KEMASKINI: Dapatkan nilai Tarikh Proses dan paparkan dalam cetakan
     const tarikhLengkap = document.getElementById('borang_tarikh_lengkap')?.value;
+    const tarikhProses = document.getElementById('borang_tarikh_proses')?.value; 
+    
     const printTarikhProses = document.querySelector('.pengesyor-dates');
     if (printTarikhProses) {
          printTarikhProses.innerHTML = `
             <div>Tarikh Mohon: <span style="font-weight:bold; text-decoration: underline;">${tMohon ? formatDateDisplay(tMohon) : '_____________'}</span></div>
             <div>Dokumen Lengkap: <span style="font-weight:bold; text-decoration: underline;">${tarikhLengkap ? formatDateDisplay(tarikhLengkap) : '_____________'}</span></div>
+            <div>Tarikh Proses: <span style="font-weight:bold; text-decoration: underline;">${tarikhProses ? formatDateDisplay(tarikhProses) : '_____________'}</span></div>
          `;
     }
 
@@ -7509,8 +7512,19 @@ Sila semak sistem STB untuk tindakan selanjutnya.`;
       dbPautanInput.style.borderWidth = '';
     }
 
-    if (btnSyncToDb) {
-      btnSyncToDb.style.display = 'none';
+    // KOD BARU: Kunci semula butang selepas reset
+    const btnPrint = document.getElementById('triggerPrintBtn');
+    const btnSync = document.getElementById('btnSyncToDb');
+    if (btnPrint) { 
+        btnPrint.style.opacity = '0.4'; 
+        btnPrint.style.pointerEvents = 'none'; 
+        btnPrint.title = 'Sila Simpan Data JSON dahulu'; 
+    }
+    if (btnSync) { 
+        btnSync.style.display = 'none'; // Kekalkan fungsi asal sembunyikan
+        btnSync.style.opacity = '0.4'; 
+        btnSync.style.pointerEvents = 'none'; 
+        btnSync.title = 'Sila Simpan Data JSON dahulu'; 
     }
 
     hasPrinted = false;
@@ -7619,6 +7633,20 @@ Sila semak sistem STB untuk tindakan selanjutnya.`;
       'stb_form_persistence',
       'stb_database_persistence'
     ]);
+
+    // KOD BARU: Kunci semula butang apabila nak edit rekod baru
+    const btnPrint = document.getElementById('triggerPrintBtn');
+    const btnSync = document.getElementById('btnSyncToDb');
+    if (btnPrint) { 
+        btnPrint.style.opacity = '0.4'; 
+        btnPrint.style.pointerEvents = 'none'; 
+        btnPrint.title = 'Sila Simpan Data JSON dahulu'; 
+    }
+    if (btnSync) { 
+        btnSync.style.opacity = '0.4'; 
+        btnSync.style.pointerEvents = 'none'; 
+        btnSync.title = 'Sila Simpan Data JSON dahulu'; 
+    }
 
     console.log("V6.5.2 Borang telah direset untuk edit.");
   }
@@ -8291,9 +8319,17 @@ Sila semak sistem STB untuk tindakan selanjutnya.`;
             
             // A. Isi maklumat tarikh dan syor pengesyor
             const tLengkap = document.getElementById('borang_tarikh_lengkap');
+            const tProses = document.getElementById('borang_tarikh_proses'); // <--- TAMBAH INI
             const sPengesyor = document.getElementById('borang_syor_pengesyor');
             if(tLengkap) tLengkap.value = data.tarikh_lengkap || "";
+            if(tProses) tProses.value = data.tarikh_proses || ""; // <--- TAMBAH INI
             if(sPengesyor) sPengesyor.value = data.syor_pengesyor || "";
+
+            // BUKA KUNCI BUTANG KERANA DATA JSON SUDAH ADA
+            const btnPrint = document.getElementById('triggerPrintBtn');
+            const btnSync = document.getElementById('btnSyncToDb');
+            if (btnPrint) { btnPrint.style.opacity = '1'; btnPrint.style.pointerEvents = 'auto'; btnPrint.title = ''; }
+            if (btnSync) { btnSync.style.opacity = '1'; btnSync.style.pointerEvents = 'auto'; btnSync.title = ''; }
             
             // B. Pulihkan Tandatangan Digital yang disimpan
             const sigSaved = document.getElementById('sig-image-saved');
@@ -10690,6 +10726,7 @@ Sila semak sistem STB untuk tindakan selanjutnya.`;
           // Kumpul data untuk disimpan dalam format JSON
           const checkerData = {
               tarikh_lengkap: document.getElementById('borang_tarikh_lengkap')?.value || "",
+              tarikh_proses: document.getElementById('borang_tarikh_proses')?.value || "", // KOD BARU: Tambah Tarikh Proses
               syor_pengesyor: document.getElementById('borang_syor_pengesyor')?.value || "",
               signature: finalSignatureBase64,
               stamp: finalStampBase64
@@ -10700,7 +10737,9 @@ Sila semak sistem STB untuk tindakan selanjutnya.`;
               row: rowIndex || '',
               syarikat: companyName,
               checker_json: JSON.stringify(checkerData),
-              email: currentUser.email
+              email: currentUser.email,
+              pengesyor: currentUser.name, // KOD BARU: Rekod log atas nama individu (bukan System)
+              user: currentUser.name       // KOD BARU: Rekod log atas nama individu
           };
 
           simulateLoadingWithSteps(['Menyimpan rekod tandatangan & cop...', 'Mengemaskini pangkalan data...'], 'Menyimpan Data Borang');
@@ -10717,8 +10756,15 @@ Sila semak sistem STB untuk tindakan selanjutnya.`;
               
               if(result.status === 'success') {
                   if (result.row) document.getElementById('db_row_index').value = result.row;
+                  
+                  // KOD BARU: Buka kunci butang Cetak dan Simpan ke DB selepas JSON berjaya disimpan
+                  const btnPrint = document.getElementById('triggerPrintBtn');
+                  const btnSync = document.getElementById('btnSyncToDb');
+                  if (btnPrint) { btnPrint.style.opacity = '1'; btnPrint.style.pointerEvents = 'auto'; btnPrint.title = ''; }
+                  if (btnSync) { btnSync.style.opacity = '1'; btnSync.style.pointerEvents = 'auto'; btnSync.title = ''; }
+
                   await playSuccessSound();
-                  CustomAppModal.alert("Data semakan, tandatangan, dan cop digital telah berjaya disimpan ke pangkalan data!", "Berjaya", "success");
+                  CustomAppModal.alert("Data semakan, tandatangan, dan cop digital telah berjaya disimpan ke pangkalan data. Anda kini boleh mencetak borang.", "Berjaya", "success");
               } else {
                   throw new Error(result.message);
               }
@@ -10820,7 +10866,6 @@ Sila semak sistem STB untuk tindakan selanjutnya.`;
     container.appendChild(card);
   });
 }
-// Tambahkan }); di sini untuk menutup document.addEventListener('DOMContentLoaded'...
 }); 
 
 console.log("STB System V6.5.2 - Web App JS loaded successfully");
