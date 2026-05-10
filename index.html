@@ -1416,19 +1416,20 @@
             align-items: center !important;
             justify-content: flex-end !important;
             position: relative;
-            width: 50% !important;
-            padding-bottom: 25px !important;
+            min-width: 250px !important; /* Dinamik: pastikan ada ruang kotak minimum */
+            padding-bottom: 20px !important;
         }
         .sign-img-print {
-            max-height: 80px !important;
-            max-width: 160px !important;
-            margin-bottom: 5px !important; /* Jarak antara Sign dan Cop */
+            max-height: 65px !important; /* Rendahkan sikit sign supaya x langgar teks atas */
+            max-width: 200px !important;
+            margin-bottom: -15px !important; /* Tarik sign ke bawah supaya nampak macam sign betul-betul ATAS cop */
             z-index: 2;
+            position: relative;
         }
         .stamp-img-print {
-            max-width: 160px !important;
-            max-height: 120px !important;
-            margin-bottom: 15px !important;
+            max-width: 240px !important;
+            max-height: 115px !important;
+            margin-bottom: 10px !important;
             z-index: 1;
         }
             .verification-separator { border-bottom: 2px solid #000; margin: 5px 0; }

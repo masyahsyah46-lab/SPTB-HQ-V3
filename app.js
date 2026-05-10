@@ -5468,8 +5468,8 @@ Sila semak sistem STB untuk tindakan selanjutnya.`;
     const stampPengesyorImg = document.getElementById('print_stamp_pengesyor_img');
     const stampHtml = document.getElementById('pengesyor_stamp_preview')?.innerHTML;
     if (stampHtml && stampPengesyorImg) {
-        // TUKAR SAIZ WIDTH/HEIGHT SVG SUPAYA MUAT BENTUK PETAK (180x130)
-        const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="180" height="130"><foreignObject width="100%" height="100%"><div xmlns="http://www.w3.org/1999/xhtml">${stampHtml}</div></foreignObject></svg>`;
+        // TUKAR SAIZ WIDTH/HEIGHT SVG KEPADA 240x115 SUPAYA BENTUK SEGI EMPAT LEBAR MUAT
+        const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="240" height="115"><foreignObject width="100%" height="100%"><div xmlns="http://www.w3.org/1999/xhtml">${stampHtml}</div></foreignObject></svg>`;
         stampPengesyorImg.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
         stampPengesyorImg.style.display = 'block';
     }
@@ -5500,8 +5500,8 @@ Sila semak sistem STB untuk tindakan selanjutnya.`;
     const stampPelulusImg = document.getElementById('print_stamp_pelulus_img');
     const stampPelulusHtml = document.getElementById('pelulus_stamp_preview')?.innerHTML;
     if (stampPelulusHtml && stampPelulusImg) {
-        // TUKAR SAIZ WIDTH/HEIGHT SVG SUPAYA MUAT BENTUK PETAK (180x130)
-        const svgP = `<svg xmlns="http://www.w3.org/2000/svg" width="180" height="130"><foreignObject width="100%" height="100%"><div xmlns="http://www.w3.org/1999/xhtml">${stampPelulusHtml}</div></foreignObject></svg>`;
+        // TUKAR SAIZ WIDTH/HEIGHT SVG KEPADA 240x115 SUPAYA BENTUK SEGI EMPAT LEBAR MUAT
+        const svgP = `<svg xmlns="http://www.w3.org/2000/svg" width="240" height="115"><foreignObject width="100%" height="100%"><div xmlns="http://www.w3.org/1999/xhtml">${stampPelulusHtml}</div></foreignObject></svg>`;
         stampPelulusImg.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svgP);
         stampPelulusImg.style.display = 'block';
     }
@@ -10656,7 +10656,7 @@ Sila semak sistem STB untuk tindakan selanjutnya.`;
   // LOGIK TANDATANGAN & COP DIGITAL
   // =========================================================================
 
-  // 1. Fungsi Jana Cop Digital Automatik
+  // 1. Fungsi Jana Cop Digital Automatik (SEGI EMPAT LEBAR & UNGU KEKAL)
   function generateDigitalStamp(userObj) {
       if (!userObj) return '';
       
@@ -10665,10 +10665,11 @@ Sila semak sistem STB untuk tindakan selanjutnya.`;
       const jawatan = userObj.jawatan || userObj.role || 'PENOLONG PENGARAH';
       const jabatan = userObj.jabatan || 'PKK KUSKOP';
       
+      // Menggunakan Inline CSS dengan (-webkit-print-color-adjust: exact) untuk paksa warna keluar di PDF/Print
       return `
-          <div class="stamp-container">
-              <span class="name">${name}</span>
-              <span>${jawatan}</span>
+          <div style="background-color: #f3e8ff; border: 3px solid #7e22ce; color: #7e22ce; border-radius: 6px; width: 230px; height: 105px; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; padding: 10px; font-size: 11px; font-weight: bold; text-transform: uppercase; box-sizing: border-box; font-family: Arial, sans-serif; margin: 0 auto; -webkit-print-color-adjust: exact; print-color-adjust: exact;">
+              <span style="font-size: 13px; color: #7e22ce; border-bottom: 2px solid #7e22ce; margin-bottom: 5px; padding-bottom: 5px; width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${name}</span>
+              <span style="margin-bottom: 3px;">${jawatan}</span>
               <span>${jabatan}</span>
           </div>
       `;
