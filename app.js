@@ -37,9 +37,11 @@ document.addEventListener('DOMContentLoaded', () => {
   let allExcelDistricts = [];
   let selectedExcelDistricts = new Set();
   let bakulUnsubscribe = null;
+  let signPengesyor = null;
+  let signPelulus = null;
 
   // URL APPSCRIPT
-  const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycby61IHDvSw1f3Oa0dZdiwR3hmthR8QW5FBMuuVeoqYov_ogeIlEvuhdeIBDO5rDi7j_/exec';
+  const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyTU4VWGx82RBtHx5IP0XWB7PjmFs-NNJ5MzbUvutDVvGT51x3Pvthj13AGKoQ9VTvm/exec';
   
   // Google Client ID
   const GOOGLE_CLIENT_ID = '758579492428-rnfev1nkkf2e6qduhujgtfbhudl2j9td.apps.googleusercontent.com';
@@ -5399,40 +5401,106 @@ Sila semak sistem STB untuk tindakan selanjutnya.`;
     setTxt('print_tarikh_mohon', tMohon ? formatDateDisplay(tMohon) : '_____________');
 
     const tbody = document.getElementById('print_personnel_page1');
-    if (!tbody) return;
+    if (tbody) {
+      tbody.innerHTML = '';
 
-    tbody.innerHTML = '';
+      const cards = document.querySelectorAll('.person-card');
+      let rowsHtml = '';
 
-    const cards = document.querySelectorAll('.person-card');
-    let rowsHtml = '';
+      cards.forEach(card => {
+        const name = card.querySelector('.p-name')?.value.toUpperCase() || '';
+        const roles = [];
+        card.querySelectorAll('.role-cb:checked').forEach(cb => roles.push(cb.value));
+        const s_ic = card.querySelector('.status-ic')?.value.toUpperCase() || '';
+        const s_sb = card.querySelector('.status-sb')?.value.toUpperCase() || '';
+        const s_epf = card.querySelector('.status-epf')?.value.toUpperCase() || '';
+        
+        const tick = (role) => roles.includes(role) ? '✓' : '';
+        
+        rowsHtml += `<tr>
+          <td style="padding:2px;"><div style="font-weight:bold; font-size:12pt; text-transform:uppercase;">${name}</div></td>
+          <td class="col-tick">${tick('PENGARAH')}</td>
+          <td class="col-tick">${tick('P.EKUITI')}</td>
+          <td class="col-tick">${tick('T.T CEK')}</td>
+          <td class="col-tick">${tick('P.SPKK')}</td>
+          <td class="col-tick">${s_ic}</td>
+          <td class="col-tick">${s_sb}</td>
+          <td class="col-tick">${s_epf}</td>
+        </tr>`;
+      });
 
-    cards.forEach(card => {
-      const name = card.querySelector('.p-name')?.value.toUpperCase() || '';
-      const roles = [];
-      card.querySelectorAll('.role-cb:checked').forEach(cb => roles.push(cb.value));
-      const s_ic = card.querySelector('.status-ic')?.value.toUpperCase() || '';
-      const s_sb = card.querySelector('.status-sb')?.value.toUpperCase() || '';
-      const s_epf = card.querySelector('.status-epf')?.value.toUpperCase() || '';
-      
-      const tick = (role) => roles.includes(role) ? '✓' : '';
-      
-      rowsHtml += `<tr>
-        <td style="padding:2px;"><div style="font-weight:bold; font-size:12pt; text-transform:uppercase;">${name}</div></td>
-        <td class="col-tick">${tick('PENGARAH')}</td>
-        <td class="col-tick">${tick('P.EKUITI')}</td>
-        <td class="col-tick">${tick('T.T CEK')}</td>
-        <td class="col-tick">${tick('P.SPKK')}</td>
-        <td class="col-tick">${s_ic}</td>
-        <td class="col-tick">${s_sb}</td>
-        <td class="col-tick">${s_epf}</td>
-      </tr>`;
-    });
+      for(let i = cards.length; i < 6; i++) {
+        rowsHtml += `<tr><td style="height:35px;"></td><td class="col-tick"></td><td class="col-tick"></td><td class="col-tick"></td><td class="col-tick"></td><td class="col-tick"></td><td class="col-tick"></td><td class="col-tick"></td></tr>`;
+      }
 
-    for(let i = cards.length; i < 6; i++) {
-      rowsHtml += `<tr><td style="height:35px;"></td><td class="col-tick"></td><td class="col-tick"></td><td class="col-tick"></td><td class="col-tick"></td><td class="col-tick"></td><td class="col-tick"></td><td class="col-tick"></td></tr>`;
+      tbody.innerHTML = rowsHtml;
     }
 
-    tbody.innerHTML = rowsHtml;
+    // =========================================================================
+    // KOD BAHARU LANGKAH 8: HIGHLIGHT SYOR & LETAK GAMBAR SIGN/STAMP
+    // =========================================================================
+    
+    // 1. Highlight Syor Pengesyor
+    const optPengesyor = document.getElementById('print_pengesyor_syor_options');
+    const syorSelected = document.getElementById('borang_syor_pengesyor')?.value || '';
+    if(optPengesyor && syorSelected) {
+        let baseText = "SOKONG&nbsp;&nbsp;/&nbsp;&nbsp;BERSYARAT&nbsp;&nbsp;/&nbsp;&nbsp;SIASAT&nbsp;&nbsp;/&nbsp;&nbsp;TIDAK DISOKONG";
+        baseText = baseText.replace(syorSelected, `<span class="highlight-print">${syorSelected}</span>`);
+        optPengesyor.innerHTML = baseText;
+    }
+
+    // 2. Set Tarikh-tarikh di Cetakan Pengesyor
+    const dateLengkap = document.getElementById('borang_tarikh_dokumen_lengkap')?.value;
+    const dateSign = document.getElementById('borang_tarikh_sign')?.value;
+    if (document.getElementById('print_tarikh_dokumen_lengkap')) document.getElementById('print_tarikh_dokumen_lengkap').innerText = dateLengkap ? formatDateDisplay(dateLengkap) : '_____________';
+    if (document.getElementById('print_tarikh_sign_pengesyor')) document.getElementById('print_tarikh_sign_pengesyor').innerText = dateSign ? dateSign : '_____________';
+
+    // 3. Masukkan Imej Sign & Stamp Pengesyor
+    if(typeof signPengesyor !== 'undefined' && signPengesyor) {
+        const imgSign = document.getElementById('print_sign_pengesyor_img');
+        if (imgSign) {
+            imgSign.src = signPengesyor.canvas.toDataURL();
+            imgSign.style.display = 'block';
+        }
+        
+        const stampPengesyorImg = document.getElementById('print_stamp_pengesyor_img');
+        const stampHtml = document.getElementById('pengesyor_stamp_preview')?.innerHTML;
+        if (stampHtml && stampPengesyorImg) {
+            const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="120" height="120"><foreignObject width="100%" height="100%"><div xmlns="http://www.w3.org/1999/xhtml">${stampHtml}</div></foreignObject></svg>`;
+            stampPengesyorImg.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
+            stampPengesyorImg.style.display = 'block';
+        }
+    }
+
+    // 4. Highlight Keputusan Pelulus
+    const optPelulus = document.getElementById('print_pelulus_keputusan_options');
+    const pelulusSelected = document.getElementById('pelulus_keputusan')?.value || '';
+    if(optPelulus && pelulusSelected) {
+        let baseText = "LULUS&nbsp;&nbsp;/&nbsp;&nbsp;LULUS BERSYARAT&nbsp;&nbsp;/&nbsp;&nbsp;PEMUTIHAN&nbsp;&nbsp;/&nbsp;&nbsp;TOLAK";
+        baseText = baseText.replace(pelulusSelected, `<span class="highlight-print">${pelulusSelected}</span>`);
+        optPelulus.innerHTML = baseText;
+    }
+
+    // 5. Set Tarikh di Cetakan Pelulus
+    const pelulusSignDate = document.getElementById('pelulus_tarikh_sign')?.value;
+    if(document.getElementById('print_tarikh_sign_pelulus')) document.getElementById('print_tarikh_sign_pelulus').innerText = pelulusSignDate || '________________';
+    
+    // 6. Masukkan Imej Sign & Stamp Pelulus
+    if(typeof signPelulus !== 'undefined' && signPelulus) {
+        const pSignImg = document.getElementById('print_sign_pelulus_img');
+        if (pSignImg) {
+            pSignImg.src = signPelulus.canvas.toDataURL();
+            pSignImg.style.display = 'block';
+        }
+    }
+    
+    const stampPelulusImg = document.getElementById('print_stamp_pelulus_img');
+    const stampPelulusHtml = document.getElementById('pelulus_stamp_preview')?.innerHTML;
+    if (stampPelulusHtml && stampPelulusImg) {
+        const svgP = `<svg xmlns="http://www.w3.org/2000/svg" width="120" height="120"><foreignObject width="100%" height="100%"><div xmlns="http://www.w3.org/1999/xhtml">${stampPelulusHtml}</div></foreignObject></svg>`;
+        stampPelulusImg.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svgP);
+        stampPelulusImg.style.display = 'block';
+    }
   }
 
   function setupAutoSaveListeners() {
@@ -6258,6 +6326,47 @@ Sila semak sistem STB untuk tindakan selanjutnya.`;
     // Inisialkan aplikasi berdasarkan peranan
     if (!isAppReady) {
       initAppBasedOnRole();
+      
+      // =========================================================================
+      // LETAKKAN EVENT LISTENER DI SINI (Di dalam blok if !isAppReady)
+      // Ini memastikan listener hanya dipasang sekali sahaja (tidak berulang kali).
+      // =========================================================================
+      
+      // Listener Syor Pengesyor
+      document.getElementById('borang_syor_pengesyor')?.addEventListener('change', (e) => {
+          const section = document.getElementById('pengesyor_signature_section');
+          if (e.target.value !== "") {
+              section.style.display = 'block';
+              // Inisialkan kanvas jika belum ada
+              if (!signPengesyor) signPengesyor = initSignaturePad('canvas_sign_pengesyor');
+              document.getElementById('pengesyor_stamp_preview').innerHTML = generateDigitalStamp(currentUser);
+          } else {
+              section.style.display = 'none';
+          }
+      });
+
+      // Listener Keputusan Pelulus
+      document.getElementById('pelulus_keputusan')?.addEventListener('change', (e) => {
+          const section = document.getElementById('pelulus_signature_section');
+          if (e.target.value !== "") {
+              section.style.display = 'block';
+              if (!signPelulus) signPelulus = initSignaturePad('canvas_sign_pelulus');
+              document.getElementById('pelulus_stamp_preview').innerHTML = generateDigitalStamp(currentUser);
+          } else {
+              section.style.display = 'none';
+          }
+      });
+
+      // Butang Padam Sign
+      document.getElementById('btnClearSignPengesyor')?.addEventListener('click', () => {
+          if(signPengesyor) signPengesyor.ctx.clearRect(0, 0, signPengesyor.canvas.width, signPengesyor.canvas.height);
+          document.getElementById('borang_tarikh_sign').value = '';
+      });
+      
+      document.getElementById('btnClearSignPelulus')?.addEventListener('click', () => {
+          if(signPelulus) signPelulus.ctx.clearRect(0, 0, signPelulus.canvas.width, signPelulus.canvas.height);
+          document.getElementById('pelulus_tarikh_sign').value = '';
+      });
     }
     
     resetInactivityTimer();
@@ -8190,6 +8299,58 @@ Sila semak sistem STB untuk tindakan selanjutnya.`;
       }
     }
 
+    // =========================================================================
+    // KOD BAHARU LANGKAH 7: MUAT SEMULA DATA JSON (SIGNATURE/STAMP)
+    // =========================================================================
+    if (item.borang_json) {
+        try {
+            const dataJSON = JSON.parse(item.borang_json);
+            
+            // 1. Isi semula field di tab Borang Semakan
+            const tLengkap = document.getElementById('borang_tarikh_dokumen_lengkap');
+            const sSyor = document.getElementById('borang_syor_pengesyor');
+            
+            if(tLengkap) tLengkap.value = dataJSON.tarikh_dokumen_lengkap || '';
+            if(sSyor) {
+                sSyor.value = dataJSON.syor_pengesyor || '';
+                
+                // 2. Jika ada syor, paparkan bahagian tandatangan
+                if(dataJSON.syor_pengesyor !== "") {
+                    const section = document.getElementById('pengesyor_signature_section');
+                    if(section) section.style.display = 'block';
+                    
+                    const tSign = document.getElementById('borang_tarikh_sign');
+                    if(tSign) tSign.value = dataJSON.tarikh_sign_pengesyor || '';
+                    
+                    // 3. Muat semula tandatangan ke kanvas
+                    if(dataJSON.sign_base64) {
+                        // Pastikan kanvas di-init dahulu jika belum
+                        if (!signPengesyor) signPengesyor = initSignaturePad('canvas_sign_pengesyor');
+                        
+                        let img = new Image();
+                        img.onload = function() {
+                            // Bersihkan kanvas sebelum melukis imej asal
+                            signPengesyor.ctx.clearRect(0, 0, signPengesyor.canvas.width, signPengesyor.canvas.height);
+                            signPengesyor.ctx.drawImage(img, 0, 0);
+                        };
+                        img.src = dataJSON.sign_base64;
+                    }
+                    
+                    // 4. Muat semula pratinjau cap
+                    const stampPrev = document.getElementById('pengesyor_stamp_preview');
+                    if(stampPrev) stampPrev.innerHTML = dataJSON.stamp_html || '';
+                    
+                    // 5. Simpan semula ke localStorage supaya data sedia untuk di-update tanpa perlu buka tab semakan
+                    storageWrapper.set({ 'stb_borang_json_draft': dataJSON });
+                }
+            }
+            console.log("V6.5.2 Data JSON berjaya dipulihkan untuk edit.");
+        } catch(e) {
+            console.error("V6.5.2 Gagal memproses data JSON semasa edit:", e);
+        }
+    }
+    // =========================================================================
+
     const tarikhSyorInput = document.getElementById('db_tarikh_syor');
     if (tarikhSyorInput && item.tarikh_syor) {
       tarikhSyorInput.value = new Date(item.tarikh_syor).toISOString().split('T')[0];
@@ -8600,7 +8761,7 @@ Sila semak sistem STB untuk tindakan selanjutnya.`;
   if (btnSendDb) {
     btnSendDb.addEventListener('click', async () => {
       
-      // PENGGUNAAN MODAL BARU
+      // 1. PENGESAHAN MODAL (Kekalkan logik asal anda)
       const isConfirmedAct = await CustomAppModal.confirm(
           "Adakah anda pasti mahu menghantar dan menyimpan data permohonan ini?", 
           "Hantar Data", 
@@ -8609,7 +8770,14 @@ Sila semak sistem STB untuk tindakan selanjutnya.`;
           false
       );
       if(!isConfirmedAct) return;
-      
+
+      // =========================================================================
+      // KOD BAHARU LANGKAH 5: AMBIL DATA JSON DARI LOCAL STORAGE (SIGNATURE/STAMP)
+      // =========================================================================
+      const storage = await storageWrapper.get(['stb_borang_json_draft']);
+      const jsonDraft = storage.stb_borang_json_draft;
+      // =========================================================================
+
       let targetRow = document.getElementById('db_row_index')?.value || '';
       let isGapFill = false;
 
@@ -8631,9 +8799,7 @@ Sila semak sistem STB untuk tindakan selanjutnya.`;
       const dbSyorValue = document.getElementById('db_syor')?.value || '';
       const dbSubmitDateValue = document.getElementById('db_submit_date')?.value || '';
       const dbSyorStatusValue = document.getElementById('db_syor_status')?.value || '';
-      const dbStartDateValue = document.getElementById('db_start_date')?.value || document.getElementById('borang_tarikh_mohon')?.value || '';
       
-      // === LOGIK BARU SEMAKAN HANTAR SPI ===
       const dbStatusHantarSpi = document.getElementById('db_status_hantar_spi')?.value || '';
       
       let confirmHantarEmel = false;
@@ -8642,7 +8808,6 @@ Sila semak sistem STB untuk tindakan selanjutnya.`;
         const hasSyorAndConfirmed = (dbSyorStatusValue.trim() !== '') && isConfirmed;
         const isTelahDihantar = (dbStatusHantarSpi === 'TELAH DIHANTAR' || dbStatusHantarSpi === 'DALAM QUEUE');
         
-        // HANYA MINTA POPUP JIKA: Ia belum dihantar ke queue DAN sudah tekan SOKONG.
         if (!hasSyorAndConfirmed && !isTelahDihantar) {
           confirmHantarEmel = await CustomAppModal.confirm(
               "Adakah anda ingin hantar emel syarikat ini ke SPI?",
@@ -8678,6 +8843,7 @@ Sila semak sistem STB untuk tindakan selanjutnya.`;
         ubahGredVal = dbPerubahanInputVal;
       }
       
+      // 2. PAYLOAD DIKEMASKINI DENGAN borang_json
       const payload = {
         row: targetRow,
         syarikat: document.getElementById('db_syarikat')?.value || '',
@@ -8702,7 +8868,10 @@ Sila semak sistem STB untuk tindakan selanjutnya.`;
         hantar_emel_spi: confirmHantarEmel,
         ubah_maklumat: ubahMaklumatVal,
         ubah_gred: ubahGredVal,
-        email: currentUser ? currentUser.email : '' // <-- TAMBAH INI
+        
+        // PARAMETER BARU UNTUK BACKEND
+        borang_json: jsonDraft ? JSON.stringify(jsonDraft) : '', 
+        email: currentUser ? currentUser.email : '' 
       };
       
       if (isConfirmed) {
@@ -8718,7 +8887,15 @@ Sila semak sistem STB untuk tindakan selanjutnya.`;
         loadingText.textContent = 'Menghantar data...';
       }
 
+      // 3. PANGGIL FUNGSI SUBMIT
       submitData(payload, "Rekod berjaya disimpan!", async (result) => {
+        
+        // =========================================================================
+        // KOD BAHARU: PADAM CACHE JSON SELEPAS BERJAYA HANTAR
+        // =========================================================================
+        await storageWrapper.remove(['stb_borang_json_draft']);
+        // =========================================================================
+
         const message = isConfirmed ? 
           "Data BERJAYA dihantar ke pangkalan data dan telah dipindahkan ke 'Telah Syor'." : 
           "Data BERJAYA disimpan sebagai DRAFT (Belum Syor).";
@@ -8734,7 +8911,6 @@ Sila semak sistem STB untuk tindakan selanjutnya.`;
         }
         
         if (whatsappUrl) {
-            // --- GANTI KEPADA MODAL ANIMASI DI SINI ---
             const isWaConfirmed = await CustomAppModal.confirm(
                 message + "<br><br>Adakah anda ingin buka dan hantar notifikasi WhatsApp sekarang?",
                 "Hantar WhatsApp",
@@ -8746,12 +8922,10 @@ Sila semak sistem STB untuk tindakan selanjutnya.`;
                 window.open(whatsappUrl, '_blank');
             }
         } else {
-            // --- GANTI KEPADA MODAL ANIMASI DI SINI ---
             await CustomAppModal.alert(message, "Selesai", "success");
         }
         
         await resetFormAfterSubmit();
-        
         fetchAndRenderList('drafts');
         
         if (loadingOverlay) {
@@ -8907,7 +9081,17 @@ Sila semak sistem STB untuk tindakan selanjutnya.`;
         }
       }
 
-      // 6. Sediakan data untuk dihantar
+      // =========================================================================
+      // KOD BAHARU LANGKAH 6: GABUNG DATA JSON PELULUS (TANDATANGAN & COP)
+      // =========================================================================
+      const jsonDataPelulus = {
+          tarikh_sign_pelulus: document.getElementById('pelulus_tarikh_sign')?.value || '',
+          sign_pelulus_base64: signPelulus ? signPelulus.canvas.toDataURL('image/png') : '',
+          stamp_pelulus_html: generateDigitalStamp(currentUser)
+      };
+      // =========================================================================
+
+      // 6. Sediakan data untuk dihantar (Payload dikemaskini)
       const payload = {
         row: pelulusActiveItem.row || '',
         kelulusan: keputusan,
@@ -8918,7 +9102,10 @@ Sila semak sistem STB untuk tindakan selanjutnya.`;
         justifikasi_baru: justifikasiPelulus,
         date_submit_baru: dateSpiPelulus,
         hantar_emel_spi_pemutihan: confirmSpiPemutihan,
-        email: currentUser ? currentUser.email : '' // <-- TAMBAH INI
+        email: currentUser ? currentUser.email : '',
+        
+        // TAMBAH PARAMETER JSON PELULUS UNTUK BACKEND
+        borang_json_pelulus: JSON.stringify(jsonDataPelulus)
       };
       
       // 7. Hantar data ke pelayan (server)
@@ -8940,6 +9127,8 @@ Sila semak sistem STB untuk tindakan selanjutnya.`;
             cachedData[index].alasan = payload.alasan;
             cachedData[index].tarikh_lulus = payload.tarikh_lulus;
             cachedData[index].pelulus = payload.pelulus;
+            // Simpan juga data JSON dalam cache jika perlu untuk paparan semula tanpa refresh
+            cachedData[index].borang_json_pelulus = payload.borang_json_pelulus;
           }
         }
         
@@ -10416,6 +10605,115 @@ Sila semak sistem STB untuk tindakan selanjutnya.`;
           container.appendChild(card);
       });
   }
+  // =========================================================================
+  // LOGIK TANDATANGAN & COP DIGITAL
+  // =========================================================================
+
+  // 1. Fungsi Jana Cop Digital Automatik
+  function generateDigitalStamp(userObj) {
+      if (!userObj) return '';
+      
+      // Gunakan nama_penuh jika ada, jika tidak guna name asal
+      const name = userObj.nama_penuh || userObj.name || 'PEGAWAI';
+      const jawatan = userObj.jawatan || userObj.role || 'PENOLONG PENGARAH';
+      const jabatan = userObj.jabatan || 'PKK KUSKOP';
+      
+      return `
+          <div class="stamp-container">
+              <span class="name">${name}</span>
+              <span>${jawatan}</span>
+              <span>${jabatan}</span>
+          </div>
+      `;
+  }
+
+  // 2. Enjin Inisialisasi Signature Pad
+  function initSignaturePad(canvasId) {
+      const canvas = document.getElementById(canvasId);
+      if (!canvas) return null;
+      const ctx = canvas.getContext('2d');
+      let isDrawing = false;
+
+      // Laraskan saiz kanvas mengikut container
+      const rect = canvas.parentElement.getBoundingClientRect();
+      canvas.width = rect.width;
+      canvas.height = 150;
+      
+      ctx.lineWidth = 3;
+      ctx.lineCap = 'round';
+      ctx.strokeStyle = '#0f172a';
+
+      const getPos = (e) => {
+          const r = canvas.getBoundingClientRect();
+          return {
+              x: (e.clientX || (e.touches && e.touches[0].clientX)) - r.left,
+              y: (e.clientY || (e.touches && e.touches[0].clientY)) - r.top
+          };
+      };
+
+      const start = (e) => { isDrawing = true; draw(e); };
+      const stop = () => { 
+          if(isDrawing) {
+              isDrawing = false; 
+              ctx.beginPath(); 
+              updateSignDate(canvasId); 
+          }
+      };
+      const draw = (e) => {
+          if (!isDrawing) return;
+          e.preventDefault();
+          const pos = getPos(e);
+          ctx.lineTo(pos.x, pos.y);
+          ctx.stroke();
+          ctx.beginPath();
+          ctx.moveTo(pos.x, pos.y);
+      };
+
+      canvas.addEventListener('mousedown', start);
+      canvas.addEventListener('mousemove', draw);
+      canvas.addEventListener('mouseup', stop);
+      canvas.addEventListener('touchstart', start, {passive: false});
+      canvas.addEventListener('touchmove', draw, {passive: false});
+      canvas.addEventListener('touchend', stop);
+
+      return { canvas, ctx };
+  }
+
+  function updateSignDate(canvasId) {
+      const today = new Date().toLocaleDateString('ms-MY');
+      if (canvasId === 'canvas_sign_pengesyor') {
+          const el = document.getElementById('borang_tarikh_sign');
+          if(el) el.value = today;
+      }
+      if (canvasId === 'canvas_sign_pelulus') {
+          const el = document.getElementById('pelulus_tarikh_sign');
+          if(el) el.value = today;
+      }
+  }
+  // =========================================================================
+  // LETAKKAN KOD LANGKAH 4 DI SINI
+  // =========================================================================
+  document.getElementById('btnSimpanBorangJSON')?.addEventListener('click', async () => {
+      const syor = document.getElementById('borang_syor_pengesyor')?.value;
+      if(!syor) {
+          await CustomAppModal.alert("Sila pilih Syor Pengesyor terlebih dahulu sebelum menyimpan.", "Syor Diperlukan", "warning");
+          return;
+      }
+      
+      const jsonData = {
+          tarikh_dokumen_lengkap: document.getElementById('borang_tarikh_dokumen_lengkap')?.value || '',
+          syor_pengesyor: syor,
+          tarikh_sign_pengesyor: document.getElementById('borang_tarikh_sign')?.value || '',
+          sign_base64: signPengesyor ? signPengesyor.canvas.toDataURL('image/png') : '',
+          stamp_html: generateDigitalStamp(currentUser)
+      };
+
+      await storageWrapper.set({ 'stb_borang_json_draft': jsonData });
+      await CustomAppModal.alert("Borang Semakan (Tandatangan & Cop) telah sedia! Sila teruskan ke tab Input Database untuk menghantar.", "Berjaya", "success");
+  });
+
+  // Butang navigasi pantas
+  document.getElementById('btnToInputDB')?.addEventListener('click', () => switchTab('db'));
 
 }); // <--- PENUTUP UTAMA UNTUK DOMContentLoaded
 

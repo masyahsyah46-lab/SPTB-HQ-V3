@@ -597,6 +597,66 @@
             border: 2px solid white;
             box-shadow: 0 2px 5px rgba(0,0,0,0.1);
         }
+        /* CSS Untuk Tandatangan & Cop Digital */
+        .signature-container {
+            background: #fff;
+            border: 2px dashed #cbd5e1;
+            border-radius: 8px;
+            margin-bottom: 10px;
+            position: relative;
+        }
+        .signature-canvas {
+            width: 100%;
+            height: 150px;
+            cursor: crosshair;
+            border-radius: 8px;
+        }
+        .stamp-container {
+            background: transparent;
+            border: 2px solid #1e40af;
+            color: #1e40af;
+            border-radius: 50%;
+            width: 120px;
+            height: 120px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            padding: 10px;
+            font-size: 0.65rem;
+            font-weight: bold;
+            margin: 10px auto;
+            text-transform: uppercase;
+            transform: rotate(-5deg);
+            box-shadow: inset 0 0 0 2px #1e40af;
+        }
+        .stamp-container span.name { 
+            font-size: 0.75rem; 
+            color: #dc2626; 
+            border-bottom: 1px solid #1e40af; 
+            margin-bottom: 4px; 
+            padding-bottom: 4px; 
+        }
+        .actions-row-bottom {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 10px;
+            width: 100%;
+            margin-top: 25px;
+            padding-top: 15px;
+            border-top: 2px solid #e2e8f0;
+        }
+        .highlight-print {
+            font-weight: 900;
+            font-size: 14pt;
+            border: 2px solid #000;
+            padding: 2px 8px;
+            border-radius: 4px;
+            display: inline-block;
+        }
         /* =========================================================================
            CUSTOM ANIMATED MODAL (PENGGANTI ALERT & CONFIRM CHROME)
            ========================================================================= */
@@ -1610,12 +1670,49 @@
                 <div class="kwsp-row"><div style="display:flex; gap:5px; flex-wrap: wrap;"><input type="month" id="kwsp_date_3" style="flex: 2;"><div class="status-input-container" style="flex: 1;"><input type="text" id="kwsp_s3" class="status-input" maxlength="10" placeholder="Status"><div class="tick-buttons"><button type="button" class="tick-btn tick-right" title="Set OK">✓</button><button type="button" class="tick-btn tick-wrong" title="Set X">✗</button></div></div></div></div>
             </div>
 
-            <div class="actions">
+            <div class="grid-equal" style="margin-top:20px; margin-bottom:15px; background: #f0fdf4; padding: 15px; border-radius: 8px; border-left: 5px solid #10b981;">
+                <div>
+                    <label>Tarikh Dokumen Lengkap</label>
+                    <input type="date" id="borang_tarikh_dokumen_lengkap">
+                </div>
+                <div>
+                    <label>Syor Pengesyor</label>
+                    <select id="borang_syor_pengesyor" style="border: 2px solid #10b981; font-weight: bold; color: #166534;">
+                        <option value="">- PILIH -</option>
+                        <option value="SOKONG">SOKONG</option>
+                        <option value="TIDAK DISOKONG">TIDAK DISOKONG</option>
+                    </select>
+                </div>
+            </div>
+
+            <div id="pengesyor_signature_section" style="display:none; margin-top:15px; border:1px solid #cbd5e1; padding:20px; border-radius:12px; background:#f8fafc;">
+                <h3 style="margin-top:0; color:#1e40af;">✍️ Pengesahan & Tandatangan Pengesyor</h3>
+                <div class="grid-equal">
+                    <div>
+                        <label>Tandatangan Digital (Lukis di bawah):</label>
+                        <div class="signature-container">
+                            <canvas id="canvas_sign_pengesyor" class="signature-canvas"></canvas>
+                        </div>
+                        <button class="btn btn-white" id="btnClearSignPengesyor" style="padding: 5px 10px; font-size: 0.8rem;">Padam & Lukis Semula</button>
+                    </div>
+                    <div style="text-align: center;">
+                        <label>Cop Rasmi (Dijana Automatik):</label>
+                        <div id="pengesyor_stamp_preview"></div>
+                    </div>
+                </div>
+                <div style="margin-top:15px;">
+                    <label>Tarikh Tandatangan (Auto):</label>
+                    <input type="text" id="borang_tarikh_sign" readonly style="background: #e2e8f0; font-weight: bold; color: #334155;">
+                </div>
+            </div>
+
+            <div class="actions-row-bottom">
                 <button class="btn btn-reset" id="btnResetTab2">RESET BORANG</button>
                 <div style="flex-grow:1;"></div>
+                <button class="btn btn-orange" id="btnSimpanBorangJSON">💾 Simpan Borang</button>
                 <button id="openFullBtn" class="btn btn-white">Buka Paparan Penuh</button>
                 <button id="triggerPrintBtn" class="btn btn-print">🖨️ Cetak</button>
-                <button class="btn btn-blue" id="btnSyncToDb" style="display:none;">Simpan & Ke Input Database »</button>
+                <button class="btn btn-blue" id="btnToInputDB">Ke Input Database »</button>
             </div>
         </div>
 
@@ -1775,6 +1872,27 @@
                 <label>Keputusan</label><select id="pelulus_keputusan" style="font-weight:bold; font-size:1.1rem; padding:12px;"><option value="">- SILA PILIH -</option><option value="LULUS">LULUS</option><option value="LULUS BERSYARAT">LULUS BERSYARAT</option><option value="PEMUTIHAN">PEMUTIHAN</option><option value="TOLAK">TOLAK</option><option value="TOLAK & BEKU 3 BULAN">TOLAK & BEKU 3 BULAN</option><option value="TOLAK & BEKU 6 BULAN">TOLAK & BEKU 6 BULAN</option></select>
                 <div id="div_alasan" style="display:none; margin-top:10px;"><label>Alasan</label><select id="pelulus_alasan"><option value="">- Pilih Alasan -</option><option value="Dokumen tidak lengkap">Dokumen tidak lengkap</option><option value="Tidak memenuhi PK1.5">Tidak memenuhi PK1.5</option><option value="Gagal lawatan premis">Gagal lawatan premis</option><option value="Pemalsuan Dokumen">Pemalsuan Dokumen</option></select></div>
                 <div style="margin-top:15px; padding:10px; background:#f0f9ff; border:1px solid #bae6fd; border-radius:8px;"><h4 style="margin-top:0; color:#0369a1; margin-bottom:10px;">Kemaskini Syor Lawatan (Pilihan)</h4><label>Tukar Syor Lawatan (Jika Perlu):</label><select id="pelulus_tukar_syor_lawatan" style="margin-bottom:10px;"><option value="">- KEKALKAN SYOR ASAL -</option><option value="YA">YA</option><option value="PEMUTIHAN">PEMUTIHAN</option></select><div id="div_pelulus_justifikasi" style="display:none;"><label>Justifikasi Perubahan Lawatan:</label><input type="text" id="pelulus_justifikasi_lawatan" placeholder="Sila nyatakan justifikasi..."></div><div id="div_pelulus_date_spi" style="display:none; margin-top:10px;"><label style="color:#1d4ed8;">Date Submit to SPI:</label><input type="date" id="pelulus_date_submit_spi" style="border-color:#3b82f6; border-width:2px;"><small style="color:#64748b; font-size:0.75rem;">(Wajib diisi jika Syor Lawatan ditukar kepada YA)</small></div></div>
+                
+                <div id="pelulus_signature_section" style="display:none; margin-top:15px; border:1px solid #cbd5e1; padding:20px; border-radius:12px; background:#f8fafc;">
+                    <h3 style="margin-top:0; color:#1e40af;">✍️ Pengesahan & Tandatangan Pelulus</h3>
+                    <div class="grid-equal">
+                        <div>
+                            <label>Tandatangan Digital Pelulus:</label>
+                            <div class="signature-container">
+                                <canvas id="canvas_sign_pelulus" class="signature-canvas"></canvas>
+                            </div>
+                            <button class="btn btn-white" id="btnClearSignPelulus" style="padding: 5px 10px; font-size: 0.8rem;">Padam & Lukis Semula</button>
+                        </div>
+                        <div style="text-align: center;">
+                            <label>Cop Rasmi (Dijana Automatik):</label>
+                            <div id="pelulus_stamp_preview"></div>
+                        </div>
+                    </div>
+                    <div style="margin-top:15px;">
+                        <label>Tarikh Tandatangan Pelulus (Auto):</label>
+                        <input type="text" id="pelulus_tarikh_sign" readonly style="background: #e2e8f0; font-weight: bold; color: #334155;">
+                    </div>
+                </div>
                 <div class="grid-equal" style="margin-top:10px;"><div><label id="label_pelulus_sah_lulus" style="display: none; font-weight:bold; color:#1e40af;"><input type="checkbox" id="pelulus_sah_lulus" style="width:auto;">Dengan ini saya mengesahkan bahawa permohonan diatas adalah benar dan tepat.</label></div><div><label>Nama Pelulus</label><input type="text" id="pelulus_nama" readonly style="background:#eee;"></div></div>
                 <div class="actions"><button class="btn btn-white" id="btnPelulusBack">Kembali</button><button class="btn btn-green" id="btnPelulusSubmit">Hantar Keputusan</button></div>
             </div>
@@ -1920,10 +2038,42 @@
             <table class="print-table layout-table" style="margin-bottom: 5px; border:none;"><tr><td width="30%"><div class="border-box" style="height:28px;"><span style="font-size:12pt; font-weight:700;">TARIKH SURAT:</span><span id="print_bank_date" style="font-weight:bold; margin-left:10px;"></span></div></td><td width="70%"><div class="border-box" style="height:28px;"><span style="font-size:12pt; font-weight:700;">SYARAT PENANDATANGAN:</span><span id="print_bank_sign" style="font-weight:bold; margin-left:10px;"></span><span id="print_bank_status" style="font-weight:bold; margin-left:5px;"></span></div></td></tr></table>
             <h2 style="margin-bottom: 3px;">DOKUMEN UMUM & KWSP</h2>
             <table class="print-table" style="font-size:13pt; margin-bottom: 5px;"><tr><td style="border:none; padding-bottom: 5px; font-weight:700;">CARTA ORGANISASI: <span id="print_doc_carta" class="print-result"></span></td><td style="border:none; padding-bottom: 5px; font-weight:700;">PETA LAKARAN: <span id="print_doc_peta" class="print-result"></span></td><td style="border:none; padding-bottom: 5px; font-weight:700;">GAMBAR PREMIS: <span id="print_doc_gambar" class="print-result"></span></td><td style="border:none; padding-bottom: 5px; font-weight:700;">PERJANJIAN SEWA: <span id="print_doc_sewa" class="print-result"></span></td></tr><tr style="height: 30px;"><td colspan="4" style="border:none;"></td></tr><tr><td colspan="4" style="padding-top:5px; border-top: 1px dotted #ccc;"><strong style="font-size:13pt;">KWSP (3 BULAN):</strong><span style="border-bottom:1px solid #000; width:auto; padding: 0 5px; display:inline-block; margin: 0 5px;" id="print_kwsp_1"></span>,<span style="border-bottom:1px solid #000; width:auto; padding: 0 5px; display:inline-block; margin: 0 5px;" id="print_kwsp_2"></span>,<span style="border-bottom:1px solid #000; width:auto; padding: 0 5px; display:inline-block; margin: 0 5px;" id="print_kwsp_3"></span></td></tr></table>
-            <div class="verification-box" style="height: 150px;"><div class="ver-title">BAHAGIAN PENGESYOR</div><div class="options-text-center">SOKONG&nbsp;&nbsp;/&nbsp;&nbsp;BERSYARAT&nbsp;&nbsp;/&nbsp;&nbsp;SIASAT&nbsp;&nbsp;/&nbsp;&nbsp;TIDAK DISOKONG</div><div class="pengesyor-grid-new"><div class="pengesyor-dates"><div>Tarikh Mohon: <span id="print_tarikh_mohon" style="font-weight:bold; text-decoration: underline;">_____________</span></div><div>Dokumen Lengkap: _____________</div><div>Tarikh Siasatan: _____________</div><div>Tarikh Proses: _____________</div></div><div class="pengesyor-sign-box"><div style="border-top: 1px solid #000; padding-top: 2px;">(Tandatangan & Cop Pengesyor)</div></div></div></div>
-            <div class="verification-separator"></div>
-            <div class="verification-box" style="margin-bottom: 0; height: 150px;"><div><div class="ver-title">BAHAGIAN PELULUS</div><div style="border-bottom: 1px dotted #000; height: 18px; margin-bottom: 8px; font-size:11pt; color:#666;">Catatan:</div><div class="options-text-center" style="border-bottom: none; padding-bottom: 0;">LULUS&nbsp;&nbsp;/&nbsp;&nbsp;LULUS BERSYARAT&nbsp;&nbsp;/&nbsp;&nbsp;PEMUTIHAN&nbsp;&nbsp;/&nbsp;&nbsp;TOLAK</div></div><div style="display: flex; justify-content: space-between; align-items: flex-end;"><div style="font-weight:700;">Tarikh: ________________</div><div style="text-align: center; width: 50%;"><br><br><br>________________________________________</div></div></div>
-        </div>
+            <div class="verification-box" style="height: 180px;">
+                <div class="ver-title">BAHAGIAN PENGESYOR</div>
+                <div class="options-text-center" id="print_pengesyor_syor_options">
+                    SOKONG&nbsp;&nbsp;/&nbsp;&nbsp;BERSYARAT&nbsp;&nbsp;/&nbsp;&nbsp;SIASAT&nbsp;&nbsp;/&nbsp;&nbsp;TIDAK DISOKONG
+                </div>
+                <div class="pengesyor-grid-new">
+                    <div class="pengesyor-dates">
+                        <div>Tarikh Mohon: <span id="print_tarikh_mohon" style="font-weight:bold; text-decoration: underline;">_____________</span></div>
+                        <div>Dokumen Lengkap: <span id="print_tarikh_dokumen_lengkap">_____________</span></div>
+                        <div>Tarikh Siasatan: <span id="print_tarikh_siasatan">_____________</span></div>
+                        <div>Tarikh Proses (Sign): <span id="print_tarikh_sign_pengesyor">_____________</span></div>
+                    </div>
+                    <div class="pengesyor-sign-box" style="display:flex; justify-content:center; align-items:flex-end; gap:10px; position:relative; width: 45%;">
+                        <img id="print_sign_pengesyor_img" style="max-height:80px; max-width:120px; display:none; margin-bottom: 20px;">
+                        <img id="print_stamp_pengesyor_img" style="max-height:90px; max-width:90px; display:none; margin-bottom: 20px;">
+                        <div style="border-top: 1px solid #000; padding-top: 2px; width: 100%; position:absolute; bottom:0;">(Tandatangan & Cop Pengesyor)</div>
+                    </div>
+                </div>
+            </div>
+            <div class="verification-box" style="margin-bottom: 0; height: 160px; position:relative;">
+                <div>
+                    <div class="ver-title">BAHAGIAN PELULUS</div>
+                    <div style="border-bottom: 1px dotted #000; height: 18px; margin-bottom: 8px; font-size:11pt; color:#666;">Catatan: <span id="print_catatan_pelulus"></span></div>
+                    <div class="options-text-center" id="print_pelulus_keputusan_options" style="border-bottom: none; padding-bottom: 0;">
+                        LULUS&nbsp;&nbsp;/&nbsp;&nbsp;LULUS BERSYARAT&nbsp;&nbsp;/&nbsp;&nbsp;PEMUTIHAN&nbsp;&nbsp;/&nbsp;&nbsp;TOLAK
+                    </div>
+                </div>
+                <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-top:20px;">
+                    <div style="font-weight:700;">Tarikh: <span id="print_tarikh_sign_pelulus">________________</span></div>
+                    <div style="text-align: center; width: 60%; display:flex; justify-content:center; align-items:flex-end; gap:20px; position:relative;">
+                        <img id="print_sign_pelulus_img" style="max-height:80px; max-width:120px; display:none; margin-bottom: 20px;">
+                        <img id="print_stamp_pelulus_img" style="max-height:90px; max-width:90px; display:none; margin-bottom: 20px;">
+                        <div style="border-top: 1px solid #000; width:100%; position:absolute; bottom:0;">(Tandatangan & Cop Pelulus)</div>
+                    </div>
+                </div>
+            </div>
 
         <div id="printProfileLayout" class="print-only-container" style="display:none;">
             <div class="profile-company-header profile-theme-bg"><div class="profile-company-name" id="printProfile_syarikat_header"></div><div class="profile-company-cidb" id="printProfile_cidb_header"></div><div class="profile-company-grade" id="printProfile_gred_header"></div></div>
