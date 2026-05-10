@@ -5469,7 +5469,7 @@ Sila semak sistem STB untuk tindakan selanjutnya.`;
     const stampHtml = document.getElementById('pengesyor_stamp_preview')?.innerHTML;
     if (stampHtml && stampPengesyorImg) {
         // TUKAR SAIZ WIDTH/HEIGHT SVG KEPADA 240x115 SUPAYA BENTUK SEGI EMPAT LEBAR MUAT
-        const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="240" height="115"><foreignObject width="100%" height="100%"><div xmlns="http://www.w3.org/1999/xhtml">${stampHtml}</div></foreignObject></svg>`;
+        const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="240" height="140"><foreignObject width="100%" height="100%"><div xmlns="http://www.w3.org/1999/xhtml">${stampHtml}</div></foreignObject></svg>`;
         stampPengesyorImg.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
         stampPengesyorImg.style.display = 'block';
     }
@@ -5501,7 +5501,7 @@ Sila semak sistem STB untuk tindakan selanjutnya.`;
     const stampPelulusHtml = document.getElementById('pelulus_stamp_preview')?.innerHTML;
     if (stampPelulusHtml && stampPelulusImg) {
         // TUKAR SAIZ WIDTH/HEIGHT SVG KEPADA 240x115 SUPAYA BENTUK SEGI EMPAT LEBAR MUAT
-        const svgP = `<svg xmlns="http://www.w3.org/2000/svg" width="240" height="115"><foreignObject width="100%" height="100%"><div xmlns="http://www.w3.org/1999/xhtml">${stampPelulusHtml}</div></foreignObject></svg>`;
+        const svgP = `<svg xmlns="http://www.w3.org/2000/svg" width="240" height="140"><foreignObject width="100%" height="100%"><div xmlns="http://www.w3.org/1999/xhtml">${stampPelulusHtml}</div></foreignObject></svg>`;
         stampPelulusImg.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svgP);
         stampPelulusImg.style.display = 'block';
     }
@@ -10624,31 +10624,58 @@ Sila semak sistem STB untuk tindakan selanjutnya.`;
       container.innerHTML = '';
 
       if (!items || items.length === 0) {
-          container.innerHTML = '<div style="grid-column: 1/-1; text-align: center; color: #64748b;">Tiada video dijumpai.</div>';
+          container.innerHTML = `
+              <div style="grid-column: 1/-1; text-align: center; padding: 50px 20px; background: #f8fafc; border-radius: 16px; border: 2px dashed #cbd5e1;">
+                  <span style="font-size: 3.5rem; display: block; margin-bottom: 15px;">🔍</span>
+                  <h3 style="color: #475569; margin: 0; font-size: 1.3rem;">Tiada video dijumpai</h3>
+                  <p style="color: #94a3b8; font-size: 0.95rem; margin-top: 5px;">Sila cuba kata kunci carian yang lain.</p>
+              </div>`;
           return;
       }
 
       items.forEach(item => {
           if (!item.id || !item.id.videoId) return;
 
+          // Perbaiki ejaan pelik (HTML entities Decode) pada tajuk YouTube
+          const tempDiv = document.createElement('div');
+          tempDiv.innerHTML = item.snippet.title;
+          const decodedTitle = tempDiv.textContent || tempDiv.innerText;
+
+          // Pilih kualiti gambar yang terbaik jika ada
+          const imgUrl = item.snippet.thumbnails.high ? item.snippet.thumbnails.high.url : item.snippet.thumbnails.medium.url;
+
           const card = document.createElement('div');
-          card.style.cssText = "background: white; border: 1px solid #cbd5e1; border-radius: 10px; padding: 10px; cursor: pointer; transition: transform 0.2s;";
-          card.onmouseover = () => { card.style.transform = 'scale(1.02)'; };
-          card.onmouseout = () => { card.style.transform = 'scale(1)'; };
+          card.className = 'yt-card';
           
           card.innerHTML = `
-              <img src="${item.snippet.thumbnails.medium.url}" style="width:100%; border-radius:8px; margin-bottom:10px; aspect-ratio: 16/9; object-fit: cover;">
-              <h4 style="margin:0 0 5px 0; font-size:0.9rem; color:#1e40af;">${item.snippet.title}</h4>
-              <p style="margin:0; font-size:0.75rem; color:#64748b;">👤 ${item.snippet.channelTitle}</p>
+              <div class="yt-thumbnail-wrapper">
+                  <img src="${imgUrl}" alt="Thumbnail">
+                  <div class="yt-play-overlay">
+                      <div class="yt-play-btn">▶</div>
+                  </div>
+              </div>
+              <div class="yt-info">
+                  <h4 class="yt-title" title="${decodedTitle}">${decodedTitle}</h4>
+                  <p class="yt-channel">
+                      <span style="background: #e2e8f0; width: 24px; height: 24px; display: inline-flex; justify-content: center; align-items: center; border-radius: 50%; font-size: 0.7rem;">👤</span>
+                      ${item.snippet.channelTitle}
+                  </p>
+              </div>
           `;
 
           card.onclick = () => {
+              if(typeof playSoundEffect === 'function') playSoundEffect('ui_click.mp3');
               const pc = document.getElementById('youtubePlayerContainer');
               const mp = document.getElementById('youtubeMainPlayer');
               pc.style.display = 'block';
               mp.src = `https://www.youtube.com/embed/${item.id.videoId}?autoplay=1`;
-              window.scrollTo({ top: pc.offsetTop - 50, behavior: 'smooth' });
+              
+              // Scroll perlahan-lahan (smooth) ke player
+              setTimeout(() => {
+                  window.scrollTo({ top: pc.offsetTop - 80, behavior: 'smooth' });
+              }, 100);
           };
+          
           container.appendChild(card);
       });
   }
@@ -10656,7 +10683,7 @@ Sila semak sistem STB untuk tindakan selanjutnya.`;
   // LOGIK TANDATANGAN & COP DIGITAL
   // =========================================================================
 
-  // 1. Fungsi Jana Cop Digital Automatik (SEGI EMPAT LEBAR & UNGU KEKAL)
+  // 1. Fungsi Jana Cop Digital Automatik (SEGI EMPAT LEBAR & UNGU KEKAL - TULISAN TAK BERTINDIH)
   function generateDigitalStamp(userObj) {
       if (!userObj) return '';
       
@@ -10666,11 +10693,12 @@ Sila semak sistem STB untuk tindakan selanjutnya.`;
       const jabatan = userObj.jabatan || 'PKK KUSKOP';
       
       // Menggunakan Inline CSS dengan (-webkit-print-color-adjust: exact) untuk paksa warna keluar di PDF/Print
+      // PERUBAHAN: height jadi auto, tambah white-space: normal dan word-wrap: break-word supaya teks turun bawah
       return `
-          <div style="background-color: #f3e8ff; border: 3px solid #7e22ce; color: #7e22ce; border-radius: 6px; width: 230px; height: 105px; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; padding: 10px; font-size: 11px; font-weight: bold; text-transform: uppercase; box-sizing: border-box; font-family: Arial, sans-serif; margin: 0 auto; -webkit-print-color-adjust: exact; print-color-adjust: exact;">
-              <span style="font-size: 13px; color: #7e22ce; border-bottom: 2px solid #7e22ce; margin-bottom: 5px; padding-bottom: 5px; width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${name}</span>
-              <span style="margin-bottom: 3px;">${jawatan}</span>
-              <span>${jabatan}</span>
+          <div style="background-color: #f3e8ff; border: 3px solid #7e22ce; color: #7e22ce; border-radius: 6px; width: 230px; min-height: 105px; height: auto; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; padding: 10px; font-size: 11px; font-weight: bold; text-transform: uppercase; box-sizing: border-box; font-family: Arial, sans-serif; margin: 0 auto; -webkit-print-color-adjust: exact; print-color-adjust: exact;">
+              <span style="font-size: 12px; color: #7e22ce; border-bottom: 2px solid #7e22ce; margin-bottom: 5px; padding-bottom: 5px; width: 100%; white-space: normal; word-wrap: break-word; line-height: 1.2;">${name}</span>
+              <span style="margin-bottom: 3px; white-space: normal; word-wrap: break-word; line-height: 1.2;">${jawatan}</span>
+              <span style="white-space: normal; word-wrap: break-word; line-height: 1.2;">${jabatan}</span>
           </div>
       `;
   }
