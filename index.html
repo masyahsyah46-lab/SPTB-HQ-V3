@@ -612,32 +612,38 @@
             border-radius: 8px;
         }
         .stamp-container {
-            background: transparent;
-            border: 2px solid #1e40af;
-            color: #1e40af;
-            border-radius: 50%;
-            width: 120px;
-            height: 120px;
+            background: #f3e8ff; /* Latar ungu sangat cair */
+            border: 3px solid #7e22ce; /* Border ungu gelap */
+            color: #7e22ce;
+            border-radius: 8px; /* Bentuk petak dengan bucu sedikit bulat */
+            width: 160px;
+            height: auto;
+            min-height: 100px;
             display: flex;
             flex-direction: column;
             justify-content: center;
             align-items: center;
             text-align: center;
-            padding: 10px;
-            font-size: 0.65rem;
+            padding: 12px 10px;
+            font-size: 0.75rem;
             font-weight: bold;
-            margin: 10px auto;
+            margin: 5px auto;
             text-transform: uppercase;
-            transform: rotate(-5deg);
-            box-shadow: inset 0 0 0 2px #1e40af;
         }
         .stamp-container span.name { 
-            font-size: 0.75rem; 
-            color: #dc2626; 
-            border-bottom: 1px solid #1e40af; 
-            margin-bottom: 4px; 
-            padding-bottom: 4px; 
+            font-size: 0.85rem; 
+            color: #7e22ce; 
+            border-bottom: 2px solid #7e22ce; 
+            margin-bottom: 5px; 
+            padding-bottom: 5px; 
+            width: 100%; 
         }
+
+        /* CSS untuk Butang Tab Lukis / Taip */
+        .sign-tabs { display: flex; gap: 10px; margin-bottom: 10px; }
+        .sign-tab-btn { padding: 8px 15px; border: 1px solid #cbd5e1; background: #f8fafc; cursor: pointer; border-radius: 6px; font-weight: bold; flex: 1; transition: 0.2s;}
+        .sign-tab-btn.active { background: #2563eb; color: white; border-color: #2563eb; }
+
         .actions-row-bottom {
             display: flex;
             justify-content: space-between;
@@ -1404,7 +1410,27 @@
             .options-text-center { text-align: center; font-weight: normal; font-size: 11pt; padding-bottom: 5px; border-bottom: 1px dotted #000; margin-bottom: 5px; line-height: 1.3; }
             .pengesyor-grid-new { display: flex; justify-content: space-between; }
             .pengesyor-dates { font-size: 12pt; line-height: 1.6; font-weight: 700; }
-            .pengesyor-sign-box { width: 45%; display: flex; flex-direction: column; justify-content: flex-end; text-align: center; font-weight: 700; }
+            .pengesyor-sign-box, .pelulus-sign-box {
+            display: flex !important;
+            flex-direction: column !important;
+            align-items: center !important;
+            justify-content: flex-end !important;
+            position: relative;
+            width: 50% !important;
+            padding-bottom: 25px !important;
+        }
+        .sign-img-print {
+            max-height: 80px !important;
+            max-width: 160px !important;
+            margin-bottom: 5px !important; /* Jarak antara Sign dan Cop */
+            z-index: 2;
+        }
+        .stamp-img-print {
+            max-width: 160px !important;
+            max-height: 120px !important;
+            margin-bottom: 15px !important;
+            z-index: 1;
+        }
             .verification-separator { border-bottom: 2px solid #000; margin: 5px 0; }
             #printProfileLayout { font-family: 'Arial', sans-serif; padding: 5px; margin: 0 auto; width: 100%; max-width: 100%; box-sizing: border-box; font-size: 12pt !important; }
             #printProfileLayout .profile-header { text-align: center; margin-bottom: 15px; border-bottom: 2px solid #000; padding-bottom: 8px; }
@@ -1689,13 +1715,28 @@
                 <h3 style="margin-top:0; color:#1e40af;">✍️ Pengesahan & Tandatangan Pengesyor</h3>
                 <div class="grid-equal">
                     <div>
-                        <label>Tandatangan Digital (Lukis di bawah):</label>
-                        <div class="signature-container">
-                            <canvas id="canvas_sign_pengesyor" class="signature-canvas"></canvas>
+                        <label>Tandatangan Digital Pengesyor:</label>
+                        <div class="sign-tabs">
+                            <button type="button" class="sign-tab-btn active" id="btnTabDrawPengesyor">✏️ Lukis</button>
+                            <button type="button" class="sign-tab-btn" id="btnTabTypePengesyor">⌨️ Taip</button>
                         </div>
-                        <button class="btn btn-white" id="btnClearSignPengesyor" style="padding: 5px 10px; font-size: 0.8rem;">Padam & Lukis Semula</button>
+                        
+                        <div id="drawSectionPengesyor">
+                            <div class="signature-container">
+                                <canvas id="canvas_sign_pengesyor" class="signature-canvas"></canvas>
+                            </div>
+                            <button type="button" class="btn btn-white" id="btnClearSignPengesyor" style="padding: 5px 10px; font-size: 0.8rem;">Padam & Lukis Semula</button>
+                        </div>
+
+                        <div id="typeSectionPengesyor" style="display:none;">
+                            <input type="text" id="typeInputPengesyor" placeholder="Taip nama anda di sini..." style="margin-bottom:10px;">
+                            <div class="signature-container" style="display:flex; justify-content:center; align-items:center; background:#fff; height: 150px; overflow: hidden; position: relative;">
+                                <canvas id="canvas_type_pengesyor" style="display:none;"></canvas>
+                                <span id="typePreviewPengesyor" style="font-family: 'Brush Script MT', 'Lucida Handwriting', cursive; font-size: 45px; color: #0f172a;"></span>
+                            </div>
+                        </div>
                     </div>
-                    <div style="text-align: center;">
+                    <div style="text-align: center; display: flex; flex-direction: column; justify-content: flex-end; align-items: center;">
                         <label>Cop Rasmi (Dijana Automatik):</label>
                         <div id="pengesyor_stamp_preview"></div>
                     </div>
@@ -1710,7 +1751,6 @@
                 <button class="btn btn-reset" id="btnResetTab2">RESET BORANG</button>
                 <div style="flex-grow:1;"></div>
                 <button class="btn btn-orange" id="btnSimpanBorangJSON">💾 Simpan Borang</button>
-                <button id="openFullBtn" class="btn btn-white">Buka Paparan Penuh</button>
                 <button id="triggerPrintBtn" class="btn btn-print">🖨️ Cetak</button>
                 <button class="btn btn-blue" id="btnToInputDB">Ke Input Database »</button>
             </div>
@@ -1861,7 +1901,7 @@
 
         <!-- TAB PELULUS VIEW -->
         <div id="tab-pelulus-view" class="tab-content no-print">
-            <div class="card" style="border-top-color: #000;"><h2>🔍 Ringkasan Permohonan</h2><div id="pelulus_view_content"></div><div class="actions"><button class="btn btn-white" id="btnViewBack" style="display:none;">Kembali</button><div style="flex-grow:1;"></div><button id="openFullBtnPelulus" class="btn btn-white">Buka Paparan Penuh</button><button class="btn btn-blue" id="btnToApproval">Ke Keputusan »</button></div></div>
+            <div class="card" style="border-top-color: #000;"><h2>🔍 Ringkasan Permohonan</h2><div id="pelulus_view_content"></div><div class="actions"><button class="btn btn-white" id="btnViewBack" style="display:none;">Kembali</button><div style="flex-grow:1;"></div><button class="btn btn-blue" id="btnToApproval">Ke Keputusan »</button></div></div>
         </div>
 
         <!-- TAB PELULUS ACTION -->
@@ -1878,12 +1918,27 @@
                     <div class="grid-equal">
                         <div>
                             <label>Tandatangan Digital Pelulus:</label>
-                            <div class="signature-container">
-                                <canvas id="canvas_sign_pelulus" class="signature-canvas"></canvas>
+                            <div class="sign-tabs">
+                                <button type="button" class="sign-tab-btn active" id="btnTabDrawPelulus">✏️ Lukis</button>
+                                <button type="button" class="sign-tab-btn" id="btnTabTypePelulus">⌨️ Taip</button>
                             </div>
-                            <button class="btn btn-white" id="btnClearSignPelulus" style="padding: 5px 10px; font-size: 0.8rem;">Padam & Lukis Semula</button>
+                            
+                            <div id="drawSectionPelulus">
+                                <div class="signature-container">
+                                    <canvas id="canvas_sign_pelulus" class="signature-canvas"></canvas>
+                                </div>
+                                <button type="button" class="btn btn-white" id="btnClearSignPelulus" style="padding: 5px 10px; font-size: 0.8rem;">Padam & Lukis Semula</button>
+                            </div>
+
+                            <div id="typeSectionPelulus" style="display:none;">
+                                <input type="text" id="typeInputPelulus" placeholder="Taip nama anda di sini..." style="margin-bottom:10px;">
+                                <div class="signature-container" style="display:flex; justify-content:center; align-items:center; background:#fff; height: 150px; overflow: hidden;">
+                                    <canvas id="canvas_type_pelulus" style="display:none;"></canvas>
+                                    <span id="typePreviewPelulus" style="font-family: 'Brush Script MT', 'Lucida Handwriting', cursive; font-size: 45px; color: #0f172a;"></span>
+                                </div>
+                            </div>
                         </div>
-                        <div style="text-align: center;">
+                        <div style="text-align: center; display: flex; flex-direction: column; justify-content: flex-end; align-items: center;">
                             <label>Cop Rasmi (Dijana Automatik):</label>
                             <div id="pelulus_stamp_preview"></div>
                         </div>
@@ -2050,10 +2105,10 @@
                         <div>Tarikh Siasatan: <span id="print_tarikh_siasatan">_____________</span></div>
                         <div>Tarikh Proses (Sign): <span id="print_tarikh_sign_pengesyor">_____________</span></div>
                     </div>
-                    <div class="pengesyor-sign-box" style="display:flex; justify-content:center; align-items:flex-end; gap:10px; position:relative; width: 45%;">
-                        <img id="print_sign_pengesyor_img" style="max-height:80px; max-width:120px; display:none; margin-bottom: 20px;">
-                        <img id="print_stamp_pengesyor_img" style="max-height:90px; max-width:90px; display:none; margin-bottom: 20px;">
-                        <div style="border-top: 1px solid #000; padding-top: 2px; width: 100%; position:absolute; bottom:0;">(Tandatangan & Cop Pengesyor)</div>
+                    <div class="pengesyor-sign-box">
+                        <img id="print_sign_pengesyor_img" class="sign-img-print" style="display:none;">
+                        <img id="print_stamp_pengesyor_img" class="stamp-img-print" style="display:none;">
+                        <div style="border-top: 1px solid #000; padding-top: 2px; width: 100%; position:absolute; bottom:0; text-align: center;">(Tandatangan & Cop Pengesyor)</div>
                     </div>
                 </div>
             </div>
@@ -2068,9 +2123,10 @@
                 <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-top:20px;">
                     <div style="font-weight:700;">Tarikh: <span id="print_tarikh_sign_pelulus">________________</span></div>
                     <div style="text-align: center; width: 60%; display:flex; justify-content:center; align-items:flex-end; gap:20px; position:relative;">
-                        <img id="print_sign_pelulus_img" style="max-height:80px; max-width:120px; display:none; margin-bottom: 20px;">
-                        <img id="print_stamp_pelulus_img" style="max-height:90px; max-width:90px; display:none; margin-bottom: 20px;">
-                        <div style="border-top: 1px solid #000; width:100%; position:absolute; bottom:0;">(Tandatangan & Cop Pelulus)</div>
+                    <div class="pelulus-sign-box">
+                        <img id="print_sign_pelulus_img" class="sign-img-print" style="display:none;">
+                        <img id="print_stamp_pelulus_img" class="stamp-img-print" style="display:none;">
+                        <div style="border-top: 1px solid #000; width:100%; position:absolute; bottom:0; text-align: center;">(Tandatangan & Cop Pelulus)</div>
                     </div>
                 </div>
             </div>

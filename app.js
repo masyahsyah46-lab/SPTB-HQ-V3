@@ -5456,20 +5456,22 @@ Sila semak sistem STB untuk tindakan selanjutnya.`;
     if (document.getElementById('print_tarikh_sign_pengesyor')) document.getElementById('print_tarikh_sign_pengesyor').innerText = dateSign ? dateSign : '_____________';
 
     // 3. Masukkan Imej Sign & Stamp Pengesyor
-    if(typeof signPengesyor !== 'undefined' && signPengesyor) {
+    const finalSignPengesyor = getFinalSignatureBase64('Pengesyor');
+    if(finalSignPengesyor) {
         const imgSign = document.getElementById('print_sign_pengesyor_img');
         if (imgSign) {
-            imgSign.src = signPengesyor.canvas.toDataURL();
+            imgSign.src = finalSignPengesyor;
             imgSign.style.display = 'block';
         }
-        
-        const stampPengesyorImg = document.getElementById('print_stamp_pengesyor_img');
-        const stampHtml = document.getElementById('pengesyor_stamp_preview')?.innerHTML;
-        if (stampHtml && stampPengesyorImg) {
-            const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="120" height="120"><foreignObject width="100%" height="100%"><div xmlns="http://www.w3.org/1999/xhtml">${stampHtml}</div></foreignObject></svg>`;
-            stampPengesyorImg.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
-            stampPengesyorImg.style.display = 'block';
-        }
+    }
+    
+    const stampPengesyorImg = document.getElementById('print_stamp_pengesyor_img');
+    const stampHtml = document.getElementById('pengesyor_stamp_preview')?.innerHTML;
+    if (stampHtml && stampPengesyorImg) {
+        // TUKAR SAIZ WIDTH/HEIGHT SVG SUPAYA MUAT BENTUK PETAK (180x130)
+        const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="180" height="130"><foreignObject width="100%" height="100%"><div xmlns="http://www.w3.org/1999/xhtml">${stampHtml}</div></foreignObject></svg>`;
+        stampPengesyorImg.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
+        stampPengesyorImg.style.display = 'block';
     }
 
     // 4. Highlight Keputusan Pelulus
@@ -5486,10 +5488,11 @@ Sila semak sistem STB untuk tindakan selanjutnya.`;
     if(document.getElementById('print_tarikh_sign_pelulus')) document.getElementById('print_tarikh_sign_pelulus').innerText = pelulusSignDate || '________________';
     
     // 6. Masukkan Imej Sign & Stamp Pelulus
-    if(typeof signPelulus !== 'undefined' && signPelulus) {
+    const finalSignPelulus = getFinalSignatureBase64('Pelulus');
+    if(finalSignPelulus) {
         const pSignImg = document.getElementById('print_sign_pelulus_img');
         if (pSignImg) {
-            pSignImg.src = signPelulus.canvas.toDataURL();
+            pSignImg.src = finalSignPelulus;
             pSignImg.style.display = 'block';
         }
     }
@@ -5497,7 +5500,8 @@ Sila semak sistem STB untuk tindakan selanjutnya.`;
     const stampPelulusImg = document.getElementById('print_stamp_pelulus_img');
     const stampPelulusHtml = document.getElementById('pelulus_stamp_preview')?.innerHTML;
     if (stampPelulusHtml && stampPelulusImg) {
-        const svgP = `<svg xmlns="http://www.w3.org/2000/svg" width="120" height="120"><foreignObject width="100%" height="100%"><div xmlns="http://www.w3.org/1999/xhtml">${stampPelulusHtml}</div></foreignObject></svg>`;
+        // TUKAR SAIZ WIDTH/HEIGHT SVG SUPAYA MUAT BENTUK PETAK (180x130)
+        const svgP = `<svg xmlns="http://www.w3.org/2000/svg" width="180" height="130"><foreignObject width="100%" height="100%"><div xmlns="http://www.w3.org/1999/xhtml">${stampPelulusHtml}</div></foreignObject></svg>`;
         stampPelulusImg.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svgP);
         stampPelulusImg.style.display = 'block';
     }
@@ -6389,6 +6393,76 @@ Sila semak sistem STB untuk tindakan selanjutnya.`;
       })
       .catch(err => console.error("V6.5.2 Gagal muat turun senarai pengguna:", err));
     // ---------------------------------------------------------
+  }
+  // --- FUNGSI BAHARU: TAB LUKIS/TAIP & GET SIGNATURE ---
+  function setupSignatureTabs(role) {
+      const btnDraw = document.getElementById(`btnTabDraw${role}`);
+      const btnType = document.getElementById(`btnTabType${role}`);
+      const drawSec = document.getElementById(`drawSection${role}`);
+      const typeSec = document.getElementById(`typeSection${role}`);
+      const typeInput = document.getElementById(`typeInput${role}`);
+      const typePreview = document.getElementById(`typePreview${role}`);
+      const typeCanvas = document.getElementById(`canvas_type_${role.toLowerCase()}`);
+      
+      if(!btnDraw || !btnType) return;
+
+      btnDraw.addEventListener('click', () => {
+          btnDraw.classList.add('active');
+          btnType.classList.remove('active');
+          drawSec.style.display = 'block';
+          typeSec.style.display = 'none';
+      });
+
+      btnType.addEventListener('click', () => {
+          btnType.classList.add('active');
+          btnDraw.classList.remove('active');
+          typeSec.style.display = 'block';
+          drawSec.style.display = 'none';
+      });
+
+      typeInput.addEventListener('input', (e) => {
+          const text = e.target.value;
+          typePreview.innerText = text;
+          
+          // Render teks ke dalam canvas tersembunyi (Supaya boleh diconvert ke imej base64)
+          const ctx = typeCanvas.getContext('2d');
+          typeCanvas.width = 400;
+          typeCanvas.height = 150;
+          ctx.clearRect(0, 0, typeCanvas.width, typeCanvas.height);
+          ctx.font = "50px 'Brush Script MT', 'Lucida Handwriting', cursive";
+          ctx.fillStyle = "#0f172a";
+          ctx.textAlign = "center";
+          ctx.textBaseline = "middle";
+          if(text) {
+              ctx.fillText(text, typeCanvas.width/2, typeCanvas.height/2);
+          }
+          
+          const today = new Date().toLocaleDateString('ms-MY');
+          if(role === 'Pengesyor') document.getElementById('borang_tarikh_sign').value = today;
+          if(role === 'Pelulus') document.getElementById('pelulus_tarikh_sign').value = today;
+      });
+  }
+
+  // Panggil setup untuk kedua-duanya
+  setupSignatureTabs('Pengesyor');
+  setupSignatureTabs('Pelulus');
+
+  // Helper untuk dapatkan imej base64 yang betul (sama ada dilukis atau ditaip)
+  function getFinalSignatureBase64(role) {
+      const isType = document.getElementById(`btnTabType${role}`)?.classList.contains('active');
+      if (isType) {
+          const canvas = document.getElementById(`canvas_type_${role.toLowerCase()}`);
+          const input = document.getElementById(`typeInput${role}`);
+          return input.value.trim() ? canvas.toDataURL('image/png') : '';
+      } else {
+          if(role === 'Pengesyor' && typeof signPengesyor !== 'undefined' && signPengesyor) {
+              return signPengesyor.canvas.toDataURL('image/png');
+          }
+          if(role === 'Pelulus' && typeof signPelulus !== 'undefined' && signPelulus) {
+              return signPelulus.canvas.toDataURL('image/png');
+          }
+      }
+      return '';
   }
 
   async function initAppBasedOnRole() {
@@ -7375,33 +7449,6 @@ Sila semak sistem STB untuk tindakan selanjutnya.`;
     }
   });
 
-  if(openFullBtn) {
-    openFullBtn.addEventListener('click', () => { 
-      saveFormData();
-      if (lastActiveTab) {
-        saveFormState(lastActiveTab);
-      }
-      
-      const fullViewUrl = 'index.html?view=full';
-      window.open(fullViewUrl, '_blank'); 
-    });
-  }
-  if(openFullBtnPelulus) {
-    openFullBtnPelulus.addEventListener('click', () => { 
-      savePelulusState();
-      
-      const fullViewUrl = 'index.html?view=full';
-      window.open(fullViewUrl, '_blank'); 
-    });
-  }
-  
-  if(btnAdminFullView) {
-    btnAdminFullView.addEventListener('click', () => {
-      const fullViewUrl = 'index.html?view=full';
-      window.open(fullViewUrl, '_blank');
-    });
-  }
-  
   const btnLogoutTop = document.getElementById('btnLogoutTop');
   if (btnLogoutTop) {
     btnLogoutTop.addEventListener('click', async () => {
@@ -9086,7 +9133,7 @@ Sila semak sistem STB untuk tindakan selanjutnya.`;
       // =========================================================================
       const jsonDataPelulus = {
           tarikh_sign_pelulus: document.getElementById('pelulus_tarikh_sign')?.value || '',
-          sign_pelulus_base64: signPelulus ? signPelulus.canvas.toDataURL('image/png') : '',
+          sign_pelulus_base64: getFinalSignatureBase64('Pelulus'),
           stamp_pelulus_html: generateDigitalStamp(currentUser)
       };
       // =========================================================================
@@ -10704,7 +10751,7 @@ Sila semak sistem STB untuk tindakan selanjutnya.`;
           tarikh_dokumen_lengkap: document.getElementById('borang_tarikh_dokumen_lengkap')?.value || '',
           syor_pengesyor: syor,
           tarikh_sign_pengesyor: document.getElementById('borang_tarikh_sign')?.value || '',
-          sign_base64: signPengesyor ? signPengesyor.canvas.toDataURL('image/png') : '',
+          sign_base64: getFinalSignatureBase64('Pengesyor'),
           stamp_html: generateDigitalStamp(currentUser)
       };
 
