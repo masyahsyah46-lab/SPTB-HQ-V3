@@ -413,15 +413,13 @@ async function handleCredentialResponse(response) {
       // KOD BARU: Simpan emel dalam objek currentUser
       currentUser.email = userEmail.toLowerCase();
 
-      // Log masuk ke Firebase untuk SEMUA role supaya Firebase membenarkan akses (Rules)
-      authFirebase.signInAnonymously().then(() => {
-          console.log("Berjaya log masuk ke Firebase untuk fungsi YouTube/Cache.");
-          
-          // KOD LAMA: Sambungkan ke Firebase Bakul HANYA jika peranan adalah PENGESYOR
-          if (currentUser.role === 'PENGESYOR') {
-              currentUserFirebaseCode = result.user.firebaseCode || null; 
-              if (currentUserFirebaseCode) {
-                  console.log("Menyambung ke Firebase Bakul dengan kod:", currentUserFirebaseCode);
+      // KOD BARU: Sambungkan ke Firebase Bakul jika peranan adalah PENGESYOR
+      if (currentUser.role === 'PENGESYOR') {
+          // Kod kini datang secara langsung dari respons backend
+          currentUserFirebaseCode = result.user.firebaseCode || null; 
+          if (currentUserFirebaseCode) {
+              console.log("Menyambung ke Firebase Bakul dengan kod:", currentUserFirebaseCode);
+              authFirebase.signInAnonymously().then(() => {
                   dbFirestore.collection("users").doc(currentUserFirebaseCode).get().then(doc => {
                       if (doc.exists) {
                           firebaseUserRules = doc.data();
@@ -429,9 +427,9 @@ async function handleCredentialResponse(response) {
                           subscribeToBakulFirebase();
                       }
                   });
-              }
+              }).catch(err => console.error("Ralat Firebase Auth:", err));
           }
-      }).catch(err => console.error("Ralat Firebase Auth:", err));
+      }
 
       // Simpan sesi dan tarikh hari ini ke storage
       const todayStr = new Date().toDateString();
@@ -4729,22 +4727,20 @@ async function handleCredentialResponse(response) {
   } else {
       currentUser = storage.stb_session;
 
-      // Log masuk semula ke Firebase secara automatik untuk SEMUA role
-      if (currentUser && currentUser.email) {
-          authFirebase.signInAnonymously().then(() => {
-              // Khusus untuk Pengesyor (Sambung ke fungsi Bakul)
-              if (currentUser.role === 'PENGESYOR') {
-                  currentUserFirebaseCode = currentUser.firebaseCode || null; 
-                  if (currentUserFirebaseCode) {
-                      dbFirestore.collection("users").doc(currentUserFirebaseCode).get().then(doc => {
-                          if (doc.exists) {
-                              firebaseUserRules = doc.data();
-                              subscribeToBakulFirebase();
-                          }
-                      });
-                  }
-              }
-          });
+      // KOD BARU: Sambungkan semula ke Firebase Bakul secara automatik jika Pengesyor
+      if (currentUser && currentUser.role === 'PENGESYOR' && currentUser.email) {
+          // Ambil dari sesi yang tersimpan
+          currentUserFirebaseCode = currentUser.firebaseCode || null; 
+          if (currentUserFirebaseCode) {
+              authFirebase.signInAnonymously().then(() => {
+                  dbFirestore.collection("users").doc(currentUserFirebaseCode).get().then(doc => {
+                      if (doc.exists) {
+                          firebaseUserRules = doc.data();
+                          subscribeToBakulFirebase();
+                      }
+                  });
+              });
+          }
       }
 
       setupUserUI(); 
@@ -5492,24 +5488,7 @@ Sila semak sistem STB untuk tindakan selanjutnya.`;
     if(document.getElementById('print_tarikh_sign_pelulus')) document.getElementById('print_tarikh_sign_pelulus').innerText = pelulusSignDate || '________________';
     
     // 6. Masukkan Imej Sign & Stamp Pelulus
-    // Kita gunakan data yang ditarik dari borang JSON jika ada
-    let finalSignPelulus = '';
-    let stampPelulusHtml = '';
-    
-    if (pelulusActiveItem && pelulusActiveItem.borang_json_pelulus) {
-        try {
-            const dataPelulus = JSON.parse(pelulusActiveItem.borang_json_pelulus);
-            finalSignPelulus = dataPelulus.sign_pelulus_base64 || '';
-            stampPelulusHtml = dataPelulus.stamp_pelulus_html || '';
-        } catch(e) {
-            console.warn("Gagal parse borang_json_pelulus untuk cetakan:", e);
-        }
-    } else {
-        // Fallback jika belum submit tapi nak cetak terus
-        finalSignPelulus = getFinalSignatureBase64('Pelulus');
-        stampPelulusHtml = document.getElementById('pelulus_stamp_preview')?.innerHTML || '';
-    }
-
+    const finalSignPelulus = getFinalSignatureBase64('Pelulus');
     if(finalSignPelulus) {
         const pSignImg = document.getElementById('print_sign_pelulus_img');
         if (pSignImg) {
@@ -5519,10 +5498,13 @@ Sila semak sistem STB untuk tindakan selanjutnya.`;
     }
     
     const stampPelulusImg = document.getElementById('print_stamp_pelulus_img');
+    const stampPelulusHtml = document.getElementById('pelulus_stamp_preview')?.innerHTML;
     if (stampPelulusHtml && stampPelulusImg) {
+        // TUKAR SAIZ WIDTH/HEIGHT SVG KEPADA 240x115 SUPAYA BENTUK SEGI EMPAT LEBAR MUAT
         const svgP = `<svg xmlns="http://www.w3.org/2000/svg" width="240" height="140"><foreignObject width="100%" height="100%"><div xmlns="http://www.w3.org/1999/xhtml">${stampPelulusHtml}</div></foreignObject></svg>`;
         stampPelulusImg.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svgP);
         stampPelulusImg.style.display = 'block';
+    }
   }
 
   function setupAutoSaveListeners() {
@@ -6332,6 +6314,10 @@ Sila semak sistem STB untuk tindakan selanjutnya.`;
     
     if (anonymousBadge) anonymousBadge.style.display = 'none';
     
+    // KEMASKINI: Pastikan fungsi klik YouTube dipasang setiap kali UI dimuatkan (termasuk selepas refresh)
+    userBadge.innerText = `👤 ${currentUser.name} (${currentUser.role})`;
+    userBadge.title = "Buka Portal YouTube";
+    userBadge.style.cursor = "pointer";
     userBadge.onclick = function() {
         if (lastActiveTab !== 'youtube') {
             window.tabSebelumYoutube = lastActiveTab; 
@@ -6340,9 +6326,6 @@ Sila semak sistem STB untuk tindakan selanjutnya.`;
     };
     
     let themeColor = getUserColorHex(currentUser.color);
-    
-    // --- KOD TAMBAHAN: Terapkan warna pengguna ke seluruh sistem & cetakan ---
-    document.documentElement.style.setProperty('--theme-color', themeColor);
     
     // Inisialkan aplikasi berdasarkan peranan
     if (!isAppReady) {
@@ -10610,32 +10593,12 @@ Sila semak sistem STB untuk tindakan selanjutnya.`;
   }
 
   async function performYoutubeSearch() {
-      // Normalkan carian kepada huruf kecil
-      const query = youtubeSearchInput.value.trim().toLowerCase();
-      if (!query || !currentUser || !currentUser.email) return;
+      const query = youtubeSearchInput.value.trim();
+      if (!query) return;
 
       simulateLoadingWithSteps(['Mencari di YouTube...', 'Memuatkan video...'], 'Mencari Video');
 
       try {
-          // 1. Tentukan laluan cache peribadi: users/{email}/youtube_cache/{query}
-          const cacheRef = dbFirestore.collection("users").doc(currentUser.email).collection("youtube_cache").doc(query);
-          
-          // 2. SEMAK CACHE INDIVIDU
-          const cacheDoc = await cacheRef.get();
-          if (cacheDoc.exists) {
-              const cacheData = cacheDoc.data();
-              // Cache sah untuk 2 hari (48 jam)
-              const isFresh = (Date.now() - cacheData.timestamp) < (2 * 24 * 60 * 60 * 1000);
-              
-              if (isFresh && cacheData.results) {
-                  console.log("Memuatkan hasil carian dari Cache Individu: " + currentUser.email);
-                  hideLoading();
-                  displayYoutubeResults(cacheData.results);
-                  return; 
-              }
-          }
-
-          // 3. JIKA TIADA DALAM CACHE, PANGGIL BACKEND
           const response = await fetchWithRetry(SCRIPT_URL, {
               method: 'POST',
               headers: { 'Content-Type': 'text/plain;charset=utf-8' },
@@ -10647,21 +10610,6 @@ Sila semak sistem STB untuk tindakan selanjutnya.`;
 
           if (result.success) {
               displayYoutubeResults(result.data);
-              
-              // 4. SIMPAN HASIL KE CACHE INDIVIDU DI FIREBASE
-              if (dbFirestore && result.data && result.data.length > 0) {
-                  try {
-                      await cacheRef.set({
-                          results: result.data,
-                          timestamp: Date.now(),
-                          query: query,
-                          userEmail: currentUser.email
-                      });
-                      console.log("Carian berjaya disimpan ke cache peribadi anda.");
-                  } catch (saveErr) {
-                      console.warn("Gagal menyimpan cache individu (Kemungkinan ralat Rules):", saveErr);
-                  }
-              }
           } else {
               CustomAppModal.alert("Gagal cari video: " + result.message, "Ralat", "error");
           }
@@ -10671,59 +10619,48 @@ Sila semak sistem STB untuk tindakan selanjutnya.`;
       }
   }
 
-  // --- FUNGSI TAMBAHAN UNTUK LOAD CACHE AWAL ---
-  async function loadRecentYoutubeCache() {
-      if (!dbFirestore || !currentUser || !currentUser.email) return;
-      
-      try {
-          const cacheSnapshot = await dbFirestore.collection("users")
-              .doc(currentUser.email)
-              .collection("youtube_cache")
-              .orderBy("timestamp", "desc")
-              .limit(1)
-              .get();
-
-          if (!cacheSnapshot.empty) {
-              const cacheData = cacheSnapshot.docs[0].data();
-              const isFresh = (Date.now() - cacheData.timestamp) < (2 * 24 * 60 * 60 * 1000); 
-              
-              if (isFresh && cacheData.results) {
-                  console.log("Memuatkan carian terakhir anda (" + cacheData.query + ")");
-                  
-                  const searchInput = document.getElementById('youtubeSearchInput');
-                  if (searchInput && !searchInput.value) {
-                      searchInput.placeholder = "Carian terakhir: " + cacheData.query;
-                  }
-                  
-                  displayYoutubeResults(cacheData.results);
-              }
-          }
-      } catch (error) {
-          console.warn("Gagal memuatkan cache awal individu:", error);
-      }
-  }
-
   function displayYoutubeResults(items) {
       const container = document.getElementById('youtubeResults');
       container.innerHTML = '';
 
       if (!items || items.length === 0) {
-          container.innerHTML = '<div style="grid-column: 1/-1; text-align: center; color: #64748b;">Tiada video dijumpai.</div>';
+          container.innerHTML = `
+              <div style="grid-column: 1/-1; text-align: center; padding: 50px 20px; background: #f8fafc; border-radius: 16px; border: 2px dashed #cbd5e1;">
+                  <span style="font-size: 3.5rem; display: block; margin-bottom: 15px;">🔍</span>
+                  <h3 style="color: #475569; margin: 0; font-size: 1.3rem;">Tiada video dijumpai</h3>
+                  <p style="color: #94a3b8; font-size: 0.95rem; margin-top: 5px;">Sila cuba kata kunci carian yang lain.</p>
+              </div>`;
           return;
       }
 
       items.forEach(item => {
           if (!item.id || !item.id.videoId) return;
 
+          // Perbaiki ejaan pelik (HTML entities Decode) pada tajuk YouTube
+          const tempDiv = document.createElement('div');
+          tempDiv.innerHTML = item.snippet.title;
+          const decodedTitle = tempDiv.textContent || tempDiv.innerText;
+
+          // Pilih kualiti gambar yang terbaik jika ada
+          const imgUrl = item.snippet.thumbnails.high ? item.snippet.thumbnails.high.url : item.snippet.thumbnails.medium.url;
+
           const card = document.createElement('div');
-          card.style.cssText = "background: white; border: 1px solid #cbd5e1; border-radius: 10px; padding: 10px; cursor: pointer; transition: transform 0.2s;";
-          card.onmouseover = () => { card.style.transform = 'scale(1.02)'; };
-          card.onmouseout = () => { card.style.transform = 'scale(1)'; };
+          card.className = 'yt-card';
           
           card.innerHTML = `
-              <img src="${item.snippet.thumbnails.medium.url}" style="width:100%; border-radius:8px; margin-bottom:10px; aspect-ratio: 16/9; object-fit: cover;">
-              <h4 style="margin:0 0 5px 0; font-size:0.9rem; color:#1e40af;">${item.snippet.title}</h4>
-              <p style="margin:0; font-size:0.75rem; color:#64748b;">👤 ${item.snippet.channelTitle}</p>
+              <div class="yt-thumbnail-wrapper">
+                  <img src="${imgUrl}" alt="Thumbnail">
+                  <div class="yt-play-overlay">
+                      <div class="yt-play-btn">▶</div>
+                  </div>
+              </div>
+              <div class="yt-info">
+                  <h4 class="yt-title" title="${decodedTitle}">${decodedTitle}</h4>
+                  <p class="yt-channel">
+                      <span style="background: #e2e8f0; width: 24px; height: 24px; display: inline-flex; justify-content: center; align-items: center; border-radius: 50%; font-size: 0.7rem;">👤</span>
+                      ${item.snippet.channelTitle}
+                  </p>
+              </div>
           `;
 
           card.onclick = () => {
@@ -10731,9 +10668,7 @@ Sila semak sistem STB untuk tindakan selanjutnya.`;
               const pc = document.getElementById('youtubePlayerContainer');
               const mp = document.getElementById('youtubeMainPlayer');
               pc.style.display = 'block';
-              
-              // KOD DITAMBAH: &list=RD... untuk YouTube Mix (Main lagu seterusnya)
-              mp.src = `https://www.youtube.com/embed/${item.id.videoId}?autoplay=1&list=RD${item.id.videoId}`;
+              mp.src = `https://www.youtube.com/embed/${item.id.videoId}?autoplay=1`;
               
               // Scroll perlahan-lahan (smooth) ke player
               setTimeout(() => {
