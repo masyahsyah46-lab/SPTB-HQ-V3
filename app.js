@@ -4898,6 +4898,7 @@ async function handleCredentialResponse(response) {
     
     const pelulusList = usersList.filter(user => user.role === 'PELULUS');
     
+    // 1. Setup dropdown WhatsApp (Sedia ada)
     dbPelulusWhatsapp.innerHTML = '<option value="">- Tiada Notifikasi / Pilih Pelulus -</option>';
     
     pelulusList.forEach(pelulus => {
@@ -4910,7 +4911,34 @@ async function handleCredentialResponse(response) {
     });
     
     console.log(`V6.5.2 WhatsApp dropdown populated with ${pelulusList.length} pelulus`);
+
+    // 2. KOD BARU: Setup dropdown Pilih Pelulus untuk Borang Cetak
+    const borangPelulusDipilih = document.getElementById('borang_pelulus_dipilih');
+    if (borangPelulusDipilih) {
+        borangPelulusDipilih.innerHTML = '<option value="">- SILA PILIH PELULUS -</option>';
+        pelulusList.forEach(pelulus => {
+            const opt = document.createElement('option');
+            opt.value = pelulus.name;
+            opt.textContent = pelulus.name;
+            opt.dataset.userObj = JSON.stringify(pelulus);
+            borangPelulusDipilih.appendChild(opt);
+        });
+    }
   }
+
+  // 3. KOD BARU: Event Listener bila Pengesyor pilih Pelulus
+  document.getElementById('borang_pelulus_dipilih')?.addEventListener('change', (e) => {
+      const previewEl = document.getElementById('pelulus_stamp_preview_in_checker');
+      if (!previewEl) return;
+      
+      const selectedOpt = e.target.options[e.target.selectedIndex];
+      if (selectedOpt && selectedOpt.value !== "") {
+          const userObj = JSON.parse(selectedOpt.dataset.userObj);
+          previewEl.innerHTML = generateDigitalStamp(userObj);
+      } else {
+          previewEl.innerHTML = '';
+      }
+  });
 
   function sendWhatsAppNotification(companyName, cidb, jenisPermohonan, syorStatus, tarikhSyor, pelulusPhone) {
     if (!pelulusPhone || pelulusPhone.trim() === '') {
@@ -5468,7 +5496,6 @@ Sila semak sistem STB untuk tindakan selanjutnya.`;
     const stampPengesyorImg = document.getElementById('print_stamp_pengesyor_img');
     const stampHtml = document.getElementById('pengesyor_stamp_preview')?.innerHTML;
     if (stampHtml && stampPengesyorImg) {
-        // TUKAR SAIZ WIDTH/HEIGHT SVG KEPADA 240x115 SUPAYA BENTUK SEGI EMPAT LEBAR MUAT
         const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="240" height="140"><foreignObject width="100%" height="100%"><div xmlns="http://www.w3.org/1999/xhtml">${stampHtml}</div></foreignObject></svg>`;
         stampPengesyorImg.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
         stampPengesyorImg.style.display = 'block';
@@ -5487,23 +5514,15 @@ Sila semak sistem STB untuk tindakan selanjutnya.`;
     const pelulusSignDate = document.getElementById('pelulus_tarikh_sign')?.value;
     if(document.getElementById('print_tarikh_sign_pelulus')) document.getElementById('print_tarikh_sign_pelulus').innerText = pelulusSignDate || '________________';
     
-    // 6. Masukkan Imej Sign & Stamp Pelulus
-    const finalSignPelulus = getFinalSignatureBase64('Pelulus');
-    if(finalSignPelulus) {
-        const pSignImg = document.getElementById('print_sign_pelulus_img');
-        if (pSignImg) {
-            pSignImg.src = finalSignPelulus;
-            pSignImg.style.display = 'block';
-        }
-    }
-    
+    // 6. Masukkan Cop Pelulus (Dijana awal oleh Pengesyor, buang sign pelulus)
     const stampPelulusImg = document.getElementById('print_stamp_pelulus_img');
-    const stampPelulusHtml = document.getElementById('pelulus_stamp_preview')?.innerHTML;
+    const stampPelulusHtml = document.getElementById('pelulus_stamp_preview_in_checker')?.innerHTML;
     if (stampPelulusHtml && stampPelulusImg) {
-        // TUKAR SAIZ WIDTH/HEIGHT SVG KEPADA 240x115 SUPAYA BENTUK SEGI EMPAT LEBAR MUAT
         const svgP = `<svg xmlns="http://www.w3.org/2000/svg" width="240" height="140"><foreignObject width="100%" height="100%"><div xmlns="http://www.w3.org/1999/xhtml">${stampPelulusHtml}</div></foreignObject></svg>`;
         stampPelulusImg.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svgP);
         stampPelulusImg.style.display = 'block';
+    } else if (stampPelulusImg) {
+        stampPelulusImg.style.display = 'none';
     }
   }
 
@@ -6443,9 +6462,8 @@ Sila semak sistem STB untuk tindakan selanjutnya.`;
       });
   }
 
-  // Panggil setup untuk kedua-duanya
+  // Panggil setup untuk Pengesyor sahaja
   setupSignatureTabs('Pengesyor');
-  setupSignatureTabs('Pelulus');
 
   // Helper untuk dapatkan imej base64 yang betul (sama ada dilukis atau ditaip)
   function getFinalSignatureBase64(role) {
@@ -6457,9 +6475,6 @@ Sila semak sistem STB untuk tindakan selanjutnya.`;
       } else {
           if(role === 'Pengesyor' && typeof signPengesyor !== 'undefined' && signPengesyor) {
               return signPengesyor.canvas.toDataURL('image/png');
-          }
-          if(role === 'Pelulus' && typeof signPelulus !== 'undefined' && signPelulus) {
-              return signPelulus.canvas.toDataURL('image/png');
           }
       }
       return '';
@@ -6830,6 +6845,35 @@ Sila semak sistem STB untuk tindakan selanjutnya.`;
       if (tabYoutube) {
         tabYoutube.style.display = 'block';
         tabYoutube.classList.add('active');
+        
+        // KOD BARU: Load Sejarah YouTube dari Firebase (Dengan Validasi 2 Hari)
+        if (currentUser && typeof dbFirestore !== 'undefined') {
+            const safeEmail = currentUser.email.replace(/[\.\#\$\[\]]/g, '_');
+            dbFirestore.collection('youtube_history').doc(safeEmail).get().then(doc => {
+                if (doc.exists && doc.data().results) {
+                    const data = doc.data();
+                    const now = Date.now();
+                    const savedAt = data.savedAt || 0; // Guna 0 jika format lama (tiada savedAt)
+                    const ageInMs = now - savedAt;
+                    const twoDaysInMs = 2 * 24 * 60 * 60 * 1000; // 48 jam dalam millisecond
+
+                    if (ageInMs < twoDaysInMs) {
+                        // Cache masih sah (Kurang dari 2 hari)
+                        if (typeof displayYoutubeResults === 'function') {
+                            displayYoutubeResults(data.results);
+                        }
+                        const searchInput = document.getElementById('youtubeSearchInput');
+                        if (searchInput && data.lastSearch) {
+                            searchInput.value = data.lastSearch;
+                        }
+                    } else {
+                        // Cache telah tamat tempoh (> 2 hari), padam dari Firebase
+                        console.log("Cache YouTube telah tamat tempoh. Memadam cache...");
+                        dbFirestore.collection('youtube_history').doc(safeEmail).delete();
+                    }
+                }
+            }).catch(e => console.log("Tiada sejarah YouTube:", e));
+        }
       }
     }
     // =========================================================
@@ -8347,7 +8391,7 @@ Sila semak sistem STB untuk tindakan selanjutnya.`;
     }
 
     // =========================================================================
-    // KOD BAHARU LANGKAH 7: MUAT SEMULA DATA JSON (SIGNATURE/STAMP)
+    // KOD BAHARU LANGKAH 7: MUAT SEMULA DATA JSON (SIGNATURE/STAMP/PELULUS)
     // =========================================================================
     if (item.borang_json) {
         try {
@@ -8369,7 +8413,7 @@ Sila semak sistem STB untuk tindakan selanjutnya.`;
                     const tSign = document.getElementById('borang_tarikh_sign');
                     if(tSign) tSign.value = dataJSON.tarikh_sign_pengesyor || '';
                     
-                    // 3. Muat semula tandatangan ke kanvas
+                    // 3. Muat semula tandatangan Pengesyor ke kanvas
                     if(dataJSON.sign_base64) {
                         // Pastikan kanvas di-init dahulu jika belum
                         if (!signPengesyor) signPengesyor = initSignaturePad('canvas_sign_pengesyor');
@@ -8383,15 +8427,26 @@ Sila semak sistem STB untuk tindakan selanjutnya.`;
                         img.src = dataJSON.sign_base64;
                     }
                     
-                    // 4. Muat semula pratinjau cap
+                    // 4. Muat semula pratinjau cop Pengesyor
                     const stampPrev = document.getElementById('pengesyor_stamp_preview');
                     if(stampPrev) stampPrev.innerHTML = dataJSON.stamp_html || '';
+
+                    // 5. KEMASKINI: Muat semula data Pelulus yang dipilih oleh Pengesyor
+                    const pelulusDropdown = document.getElementById('borang_pelulus_dipilih');
+                    if (pelulusDropdown && dataJSON.pelulus_dipilih) {
+                        pelulusDropdown.value = dataJSON.pelulus_dipilih;
+                    }
                     
-                    // 5. Simpan semula ke localStorage supaya data sedia untuk di-update tanpa perlu buka tab semakan
+                    const pelulusStampPrev = document.getElementById('pelulus_stamp_preview_in_checker');
+                    if (pelulusStampPrev && dataJSON.stamp_pelulus_html) {
+                        pelulusStampPrev.innerHTML = dataJSON.stamp_pelulus_html;
+                    }
+                    
+                    // 6. Simpan semula ke localStorage supaya data sedia untuk di-update/hantar
                     storageWrapper.set({ 'stb_borang_json_draft': dataJSON });
                 }
             }
-            console.log("V6.5.2 Data JSON berjaya dipulihkan untuk edit.");
+            console.log("V6.5.2 Data JSON (termasuk cop Pelulus) berjaya dipulihkan untuk edit.");
         } catch(e) {
             console.error("V6.5.2 Gagal memproses data JSON semasa edit:", e);
         }
@@ -9128,16 +9183,6 @@ Sila semak sistem STB untuk tindakan selanjutnya.`;
         }
       }
 
-      // =========================================================================
-      // KOD BAHARU LANGKAH 6: GABUNG DATA JSON PELULUS (TANDATANGAN & COP)
-      // =========================================================================
-      const jsonDataPelulus = {
-          tarikh_sign_pelulus: document.getElementById('pelulus_tarikh_sign')?.value || '',
-          sign_pelulus_base64: getFinalSignatureBase64('Pelulus'),
-          stamp_pelulus_html: generateDigitalStamp(currentUser)
-      };
-      // =========================================================================
-
       // 6. Sediakan data untuk dihantar (Payload dikemaskini)
       const payload = {
         row: pelulusActiveItem.row || '',
@@ -9151,8 +9196,8 @@ Sila semak sistem STB untuk tindakan selanjutnya.`;
         hantar_emel_spi_pemutihan: confirmSpiPemutihan,
         email: currentUser ? currentUser.email : '',
         
-        // TAMBAH PARAMETER JSON PELULUS UNTUK BACKEND
-        borang_json_pelulus: JSON.stringify(jsonDataPelulus)
+        // PARAMETER JSON PELULUS DIBIARKAN KOSONG KERANA TELAH DIJANA OLEH PENGESYOR
+        borang_json_pelulus: ''
       };
       
       // 7. Hantar data ke pelayan (server)
@@ -10479,7 +10524,6 @@ Sila semak sistem STB untuk tindakan selanjutnya.`;
   if (btnQueueSPI) {
       btnQueueSPI.addEventListener('click', async () => {
           
-          // 1. Gunakan fungsi animasi berperingkat (0% - 100%)
           simulateLoadingWithSteps(
               ['Menyambung ke pelayan...', 'Menyemak Queue Siasatan Biasa...', 'Menyemak Queue Pemutihan...', 'Menyediakan paparan...'],
               'Mendapatkan senarai queue SPI'
@@ -10490,7 +10534,6 @@ Sila semak sistem STB untuk tindakan selanjutnya.`;
               const response = await fetchWithRetry(SCRIPT_URL + `?action=getQueueData&email=${userEmail}&t=` + Date.now(), { method: 'GET' }, 3, 1000);
               const result = await response.json();
               
-              // 2. Set progress ke 100% dan tunjuk mesej Selesai sebelum tutup
               const progressBar = document.getElementById('loading-progress-bar');
               const progressPercent = document.getElementById('loading-progress-percent');
               const progressLabel = document.getElementById('loading-progress-label');
@@ -10499,8 +10542,6 @@ Sila semak sistem STB untuk tindakan selanjutnya.`;
               if (progressPercent) progressPercent.textContent = '100%';
               if (progressLabel) progressLabel.textContent = 'Selesai!';
               
-              // 3. Tunggu setengah saat (500ms) supaya pengguna nampak peratusan penuh 100%
-              // Tambah perkataan 'async' di dalam setTimeout supaya boleh menggunakan fungsi bunyi
               setTimeout(async () => {
                   hideLoading();
                   
@@ -10508,10 +10549,10 @@ Sila semak sistem STB untuk tindakan selanjutnya.`;
                       populateQueueTable('tbodyQueueSiasat', result.siasat);
                       populateQueueTable('tbodyQueuePemutihan', result.pemutihan);
                       
-                      queueSpiModal.classList.add('show');
+                      // KOD DIBETULKAN: Papar (flex) dahulu, kemudian baru jalankan animasi (show)
                       queueSpiModal.style.display = 'flex';
+                      setTimeout(() => { queueSpiModal.classList.add('show'); }, 10);
                       
-                      // KOD TAMBAHAN: Mainkan bunyi berjaya!
                       await playSuccessSound();
                       
                   } else {
@@ -10523,6 +10564,21 @@ Sila semak sistem STB untuk tindakan selanjutnya.`;
               hideLoading();
               CustomAppModal.alert('Gagal mendapatkan senarai queue: ' + error.message, 'Ralat', 'error');
           }
+      });
+  }
+  
+  if (queueSpiClose) {
+      queueSpiClose.addEventListener('click', () => {
+          queueSpiModal.classList.remove('show');
+          setTimeout(() => queueSpiModal.style.display = 'none', 300);
+      });
+  }
+
+  const btnTutupQueueSPI = document.getElementById('btnTutupQueueSPI');
+  if (btnTutupQueueSPI) {
+      btnTutupQueueSPI.addEventListener('click', () => {
+          queueSpiModal.classList.remove('show');
+          setTimeout(() => queueSpiModal.style.display = 'none', 300);
       });
   }
   
@@ -10610,6 +10666,17 @@ Sila semak sistem STB untuk tindakan selanjutnya.`;
 
           if (result.success) {
               displayYoutubeResults(result.data);
+              
+              // KOD BARU: Simpan Sejarah YouTube ke Firebase (Termasuk masa klien)
+              if (currentUser && typeof dbFirestore !== 'undefined') {
+                  const safeEmail = currentUser.email.replace(/[\.\#\$\[\]]/g, '_');
+                  dbFirestore.collection('youtube_history').doc(safeEmail).set({
+                      lastSearch: query,
+                      results: result.data,
+                      savedAt: Date.now(), // Simpan masa dalam millisecond
+                      timestamp: firebase.firestore.FieldValue.serverTimestamp()
+                  }).catch(e => console.log("Gagal simpan sejarah YouTube:", e));
+              }
           } else {
               CustomAppModal.alert("Gagal cari video: " + result.message, "Ralat", "error");
           }
@@ -10781,11 +10848,14 @@ Sila semak sistem STB untuk tindakan selanjutnya.`;
           syor_pengesyor: syor,
           tarikh_sign_pengesyor: document.getElementById('borang_tarikh_sign')?.value || '',
           sign_base64: getFinalSignatureBase64('Pengesyor'),
-          stamp_html: generateDigitalStamp(currentUser)
+          stamp_html: generateDigitalStamp(currentUser),
+          // KOD BARU: Simpan data Pelulus yang dipilih
+          pelulus_dipilih: document.getElementById('borang_pelulus_dipilih')?.value || '',
+          stamp_pelulus_html: document.getElementById('pelulus_stamp_preview_in_checker')?.innerHTML || ''
       };
 
       await storageWrapper.set({ 'stb_borang_json_draft': jsonData });
-      await CustomAppModal.alert("Borang Semakan (Tandatangan & Cop) telah sedia! Sila teruskan ke tab Input Database untuk menghantar.", "Berjaya", "success");
+      await CustomAppModal.alert("Borang Semakan telah sedia! Sila teruskan ke tab Input Database.", "Berjaya", "success");
   });
 
   // Butang navigasi pantas
