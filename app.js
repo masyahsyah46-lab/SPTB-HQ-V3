@@ -5488,7 +5488,24 @@ Sila semak sistem STB untuk tindakan selanjutnya.`;
     if(document.getElementById('print_tarikh_sign_pelulus')) document.getElementById('print_tarikh_sign_pelulus').innerText = pelulusSignDate || '________________';
     
     // 6. Masukkan Imej Sign & Stamp Pelulus
-    const finalSignPelulus = getFinalSignatureBase64('Pelulus');
+    // Kita gunakan data yang ditarik dari borang JSON jika ada
+    let finalSignPelulus = '';
+    let stampPelulusHtml = '';
+    
+    if (pelulusActiveItem && pelulusActiveItem.borang_json_pelulus) {
+        try {
+            const dataPelulus = JSON.parse(pelulusActiveItem.borang_json_pelulus);
+            finalSignPelulus = dataPelulus.sign_pelulus_base64 || '';
+            stampPelulusHtml = dataPelulus.stamp_pelulus_html || '';
+        } catch(e) {
+            console.warn("Gagal parse borang_json_pelulus untuk cetakan:", e);
+        }
+    } else {
+        // Fallback jika belum submit tapi nak cetak terus
+        finalSignPelulus = getFinalSignatureBase64('Pelulus');
+        stampPelulusHtml = document.getElementById('pelulus_stamp_preview')?.innerHTML || '';
+    }
+
     if(finalSignPelulus) {
         const pSignImg = document.getElementById('print_sign_pelulus_img');
         if (pSignImg) {
@@ -5498,13 +5515,10 @@ Sila semak sistem STB untuk tindakan selanjutnya.`;
     }
     
     const stampPelulusImg = document.getElementById('print_stamp_pelulus_img');
-    const stampPelulusHtml = document.getElementById('pelulus_stamp_preview')?.innerHTML;
     if (stampPelulusHtml && stampPelulusImg) {
-        // TUKAR SAIZ WIDTH/HEIGHT SVG KEPADA 240x115 SUPAYA BENTUK SEGI EMPAT LEBAR MUAT
         const svgP = `<svg xmlns="http://www.w3.org/2000/svg" width="240" height="140"><foreignObject width="100%" height="100%"><div xmlns="http://www.w3.org/1999/xhtml">${stampPelulusHtml}</div></foreignObject></svg>`;
         stampPelulusImg.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svgP);
         stampPelulusImg.style.display = 'block';
-    }
   }
 
   function setupAutoSaveListeners() {
