@@ -5519,7 +5519,7 @@ Sila semak sistem STB untuk tindakan selanjutnya.`;
         const svgP = `<svg xmlns="http://www.w3.org/2000/svg" width="240" height="140"><foreignObject width="100%" height="100%"><div xmlns="http://www.w3.org/1999/xhtml">${stampPelulusHtml}</div></foreignObject></svg>`;
         stampPelulusImg.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svgP);
         stampPelulusImg.style.display = 'block';
-  }
+   }
 
   function setupAutoSaveListeners() {
     const checkerTab = document.getElementById('tab-checker');
