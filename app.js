@@ -10593,12 +10593,32 @@ Sila semak sistem STB untuk tindakan selanjutnya.`;
   }
 
   async function performYoutubeSearch() {
-      const query = youtubeSearchInput.value.trim();
-      if (!query) return;
+      // Normalkan carian kepada huruf kecil
+      const query = youtubeSearchInput.value.trim().toLowerCase();
+      if (!query || !currentUser || !currentUser.email) return;
 
       simulateLoadingWithSteps(['Mencari di YouTube...', 'Memuatkan video...'], 'Mencari Video');
 
       try {
+          // 1. Tentukan laluan cache peribadi: users/{email}/youtube_cache/{query}
+          const cacheRef = dbFirestore.collection("users").doc(currentUser.email).collection("youtube_cache").doc(query);
+          
+          // 2. SEMAK CACHE INDIVIDU
+          const cacheDoc = await cacheRef.get();
+          if (cacheDoc.exists) {
+              const cacheData = cacheDoc.data();
+              // Cache sah untuk 2 hari (48 jam)
+              const isFresh = (Date.now() - cacheData.timestamp) < (2 * 24 * 60 * 60 * 1000);
+              
+              if (isFresh && cacheData.results) {
+                  console.log("Memuatkan hasil carian dari Cache Individu: " + currentUser.email);
+                  hideLoading();
+                  displayYoutubeResults(cacheData.results);
+                  return; 
+              }
+          }
+
+          // 3. JIKA TIADA DALAM CACHE, PANGGIL BACKEND
           const response = await fetchWithRetry(SCRIPT_URL, {
               method: 'POST',
               headers: { 'Content-Type': 'text/plain;charset=utf-8' },
@@ -10610,12 +10630,59 @@ Sila semak sistem STB untuk tindakan selanjutnya.`;
 
           if (result.success) {
               displayYoutubeResults(result.data);
+              
+              // 4. SIMPAN HASIL KE CACHE INDIVIDU DI FIREBASE
+              if (dbFirestore && result.data && result.data.length > 0) {
+                  try {
+                      await cacheRef.set({
+                          results: result.data,
+                          timestamp: Date.now(),
+                          query: query,
+                          userEmail: currentUser.email
+                      });
+                      console.log("Carian berjaya disimpan ke cache peribadi anda.");
+                  } catch (saveErr) {
+                      console.warn("Gagal menyimpan cache individu (Kemungkinan ralat Rules):", saveErr);
+                  }
+              }
           } else {
               CustomAppModal.alert("Gagal cari video: " + result.message, "Ralat", "error");
           }
       } catch (error) {
           hideLoading();
           CustomAppModal.alert("Ralat sistem: " + error.message, "Ralat", "error");
+      }
+  }
+
+  // --- FUNGSI TAMBAHAN UNTUK LOAD CACHE AWAL ---
+  async function loadRecentYoutubeCache() {
+      if (!dbFirestore || !currentUser || !currentUser.email) return;
+      
+      try {
+          const cacheSnapshot = await dbFirestore.collection("users")
+              .doc(currentUser.email)
+              .collection("youtube_cache")
+              .orderBy("timestamp", "desc")
+              .limit(1)
+              .get();
+
+          if (!cacheSnapshot.empty) {
+              const cacheData = cacheSnapshot.docs[0].data();
+              const isFresh = (Date.now() - cacheData.timestamp) < (2 * 24 * 60 * 60 * 1000); 
+              
+              if (isFresh && cacheData.results) {
+                  console.log("Memuatkan carian terakhir anda (" + cacheData.query + ")");
+                  
+                  const searchInput = document.getElementById('youtubeSearchInput');
+                  if (searchInput && !searchInput.value) {
+                      searchInput.placeholder = "Carian terakhir: " + cacheData.query;
+                  }
+                  
+                  displayYoutubeResults(cacheData.results);
+              }
+          }
+      } catch (error) {
+          console.warn("Gagal memuatkan cache awal individu:", error);
       }
   }
 
