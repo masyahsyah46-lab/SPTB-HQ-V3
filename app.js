@@ -413,13 +413,15 @@ async function handleCredentialResponse(response) {
       // KOD BARU: Simpan emel dalam objek currentUser
       currentUser.email = userEmail.toLowerCase();
 
-      // KOD BARU: Sambungkan ke Firebase Bakul jika peranan adalah PENGESYOR
-      if (currentUser.role === 'PENGESYOR') {
-          // Kod kini datang secara langsung dari respons backend
-          currentUserFirebaseCode = result.user.firebaseCode || null; 
-          if (currentUserFirebaseCode) {
-              console.log("Menyambung ke Firebase Bakul dengan kod:", currentUserFirebaseCode);
-              authFirebase.signInAnonymously().then(() => {
+      // Log masuk ke Firebase untuk SEMUA role supaya Firebase membenarkan akses (Rules)
+      authFirebase.signInAnonymously().then(() => {
+          console.log("Berjaya log masuk ke Firebase untuk fungsi YouTube/Cache.");
+          
+          // KOD LAMA: Sambungkan ke Firebase Bakul HANYA jika peranan adalah PENGESYOR
+          if (currentUser.role === 'PENGESYOR') {
+              currentUserFirebaseCode = result.user.firebaseCode || null; 
+              if (currentUserFirebaseCode) {
+                  console.log("Menyambung ke Firebase Bakul dengan kod:", currentUserFirebaseCode);
                   dbFirestore.collection("users").doc(currentUserFirebaseCode).get().then(doc => {
                       if (doc.exists) {
                           firebaseUserRules = doc.data();
@@ -427,9 +429,9 @@ async function handleCredentialResponse(response) {
                           subscribeToBakulFirebase();
                       }
                   });
-              }).catch(err => console.error("Ralat Firebase Auth:", err));
+              }
           }
-      }
+      }).catch(err => console.error("Ralat Firebase Auth:", err));
 
       // Simpan sesi dan tarikh hari ini ke storage
       const todayStr = new Date().toDateString();
@@ -4727,20 +4729,22 @@ async function handleCredentialResponse(response) {
   } else {
       currentUser = storage.stb_session;
 
-      // KOD BARU: Sambungkan semula ke Firebase Bakul secara automatik jika Pengesyor
-      if (currentUser && currentUser.role === 'PENGESYOR' && currentUser.email) {
-          // Ambil dari sesi yang tersimpan
-          currentUserFirebaseCode = currentUser.firebaseCode || null; 
-          if (currentUserFirebaseCode) {
-              authFirebase.signInAnonymously().then(() => {
-                  dbFirestore.collection("users").doc(currentUserFirebaseCode).get().then(doc => {
-                      if (doc.exists) {
-                          firebaseUserRules = doc.data();
-                          subscribeToBakulFirebase();
-                      }
-                  });
-              });
-          }
+      // Log masuk semula ke Firebase secara automatik untuk SEMUA role
+      if (currentUser && currentUser.email) {
+          authFirebase.signInAnonymously().then(() => {
+              // Khusus untuk Pengesyor (Sambung ke fungsi Bakul)
+              if (currentUser.role === 'PENGESYOR') {
+                  currentUserFirebaseCode = currentUser.firebaseCode || null; 
+                  if (currentUserFirebaseCode) {
+                      dbFirestore.collection("users").doc(currentUserFirebaseCode).get().then(doc => {
+                          if (doc.exists) {
+                              firebaseUserRules = doc.data();
+                              subscribeToBakulFirebase();
+                          }
+                      });
+                  }
+              }
+          });
       }
 
       setupUserUI(); 
@@ -6328,10 +6332,6 @@ Sila semak sistem STB untuk tindakan selanjutnya.`;
     
     if (anonymousBadge) anonymousBadge.style.display = 'none';
     
-    // KEMASKINI: Pastikan fungsi klik YouTube dipasang setiap kali UI dimuatkan (termasuk selepas refresh)
-    userBadge.innerText = `👤 ${currentUser.name} (${currentUser.role})`;
-    userBadge.title = "Buka Portal YouTube";
-    userBadge.style.cursor = "pointer";
     userBadge.onclick = function() {
         if (lastActiveTab !== 'youtube') {
             window.tabSebelumYoutube = lastActiveTab; 
@@ -6341,9 +6341,13 @@ Sila semak sistem STB untuk tindakan selanjutnya.`;
     
     let themeColor = getUserColorHex(currentUser.color);
     
+    // --- KOD TAMBAHAN: Terapkan warna pengguna ke seluruh sistem & cetakan ---
+    document.documentElement.style.setProperty('--theme-color', themeColor);
+    
     // Inisialkan aplikasi berdasarkan peranan
     if (!isAppReady) {
       initAppBasedOnRole();
+    }
       
       // =========================================================================
       // LETAKKAN EVENT LISTENER DI SINI (Di dalam blok if !isAppReady)
