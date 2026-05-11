@@ -5519,7 +5519,7 @@ Sila semak sistem STB untuk tindakan selanjutnya.`;
         const svgP = `<svg xmlns="http://www.w3.org/2000/svg" width="240" height="140"><foreignObject width="100%" height="100%"><div xmlns="http://www.w3.org/1999/xhtml">${stampPelulusHtml}</div></foreignObject></svg>`;
         stampPelulusImg.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svgP);
         stampPelulusImg.style.display = 'block';
-   }
+  }
 
   function setupAutoSaveListeners() {
     const checkerTab = document.getElementById('tab-checker');
@@ -10749,7 +10749,9 @@ Sila semak sistem STB untuk tindakan selanjutnya.`;
               const pc = document.getElementById('youtubePlayerContainer');
               const mp = document.getElementById('youtubeMainPlayer');
               pc.style.display = 'block';
-              mp.src = `https://www.youtube.com/embed/${item.id.videoId}?autoplay=1`;
+              
+              // KOD DITAMBAH: &list=RD... untuk YouTube Mix (Main lagu seterusnya)
+              mp.src = `https://www.youtube.com/embed/${item.id.videoId}?autoplay=1&list=RD${item.id.videoId}`;
               
               // Scroll perlahan-lahan (smooth) ke player
               setTimeout(() => {
