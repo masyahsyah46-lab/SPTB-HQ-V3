@@ -10582,22 +10582,6 @@ Sila semak sistem STB untuk tindakan selanjutnya.`;
       });
   }
   
-  if (queueSpiClose) {
-      queueSpiClose.addEventListener('click', () => {
-          queueSpiModal.classList.remove('show');
-          setTimeout(() => queueSpiModal.style.display = 'none', 300);
-      });
-  }
-
-  // === TAMBAH KOD INI DI BAWAHNYA ===
-  const btnTutupQueueSPI = document.getElementById('btnTutupQueueSPI');
-  if (btnTutupQueueSPI) {
-      btnTutupQueueSPI.addEventListener('click', () => {
-          queueSpiModal.classList.remove('show');
-          setTimeout(() => queueSpiModal.style.display = 'none', 300);
-      });
-  }
-
   function populateQueueTable(tbodyId, dataArray) {
       const tbody = document.getElementById(tbodyId);
       if (!tbody) return;
