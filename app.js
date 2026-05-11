@@ -10709,43 +10709,22 @@ Sila semak sistem STB untuk tindakan selanjutnya.`;
       container.innerHTML = '';
 
       if (!items || items.length === 0) {
-          container.innerHTML = `
-              <div style="grid-column: 1/-1; text-align: center; padding: 50px 20px; background: #f8fafc; border-radius: 16px; border: 2px dashed #cbd5e1;">
-                  <span style="font-size: 3.5rem; display: block; margin-bottom: 15px;">🔍</span>
-                  <h3 style="color: #475569; margin: 0; font-size: 1.3rem;">Tiada video dijumpai</h3>
-                  <p style="color: #94a3b8; font-size: 0.95rem; margin-top: 5px;">Sila cuba kata kunci carian yang lain.</p>
-              </div>`;
+          container.innerHTML = '<div style="grid-column: 1/-1; text-align: center; color: #64748b;">Tiada video dijumpai.</div>';
           return;
       }
 
       items.forEach(item => {
           if (!item.id || !item.id.videoId) return;
 
-          // Perbaiki ejaan pelik (HTML entities Decode) pada tajuk YouTube
-          const tempDiv = document.createElement('div');
-          tempDiv.innerHTML = item.snippet.title;
-          const decodedTitle = tempDiv.textContent || tempDiv.innerText;
-
-          // Pilih kualiti gambar yang terbaik jika ada
-          const imgUrl = item.snippet.thumbnails.high ? item.snippet.thumbnails.high.url : item.snippet.thumbnails.medium.url;
-
           const card = document.createElement('div');
-          card.className = 'yt-card';
+          card.style.cssText = "background: white; border: 1px solid #cbd5e1; border-radius: 10px; padding: 10px; cursor: pointer; transition: transform 0.2s;";
+          card.onmouseover = () => { card.style.transform = 'scale(1.02)'; };
+          card.onmouseout = () => { card.style.transform = 'scale(1)'; };
           
           card.innerHTML = `
-              <div class="yt-thumbnail-wrapper">
-                  <img src="${imgUrl}" alt="Thumbnail">
-                  <div class="yt-play-overlay">
-                      <div class="yt-play-btn">▶</div>
-                  </div>
-              </div>
-              <div class="yt-info">
-                  <h4 class="yt-title" title="${decodedTitle}">${decodedTitle}</h4>
-                  <p class="yt-channel">
-                      <span style="background: #e2e8f0; width: 24px; height: 24px; display: inline-flex; justify-content: center; align-items: center; border-radius: 50%; font-size: 0.7rem;">👤</span>
-                      ${item.snippet.channelTitle}
-                  </p>
-              </div>
+              <img src="${item.snippet.thumbnails.medium.url}" style="width:100%; border-radius:8px; margin-bottom:10px; aspect-ratio: 16/9; object-fit: cover;">
+              <h4 style="margin:0 0 5px 0; font-size:0.9rem; color:#1e40af;">${item.snippet.title}</h4>
+              <p style="margin:0; font-size:0.75rem; color:#64748b;">👤 ${item.snippet.channelTitle}</p>
           `;
 
           card.onclick = () => {
