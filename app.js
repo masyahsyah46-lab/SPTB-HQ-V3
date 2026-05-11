@@ -6347,7 +6347,6 @@ Sila semak sistem STB untuk tindakan selanjutnya.`;
     // Inisialkan aplikasi berdasarkan peranan
     if (!isAppReady) {
       initAppBasedOnRole();
-    }
       
       // =========================================================================
       // LETAKKAN EVENT LISTENER DI SINI (Di dalam blok if !isAppReady)
