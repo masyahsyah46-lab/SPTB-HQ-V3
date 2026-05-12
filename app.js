@@ -8331,6 +8331,8 @@ Sila semak sistem STB untuk tindakan selanjutnya.`;
     if (item.borang_json && item.borang_json.trim() !== '') {
         try {
             const parsedData = JSON.parse(item.borang_json);
+            
+            // 1. Loop dan masukkan setiap nilai JSON ke dalam borang semakan
             Object.keys(parsedData).forEach(key => {
                 const el = document.getElementById(key);
                 if (el) {
@@ -8339,13 +8341,24 @@ Sila semak sistem STB untuk tindakan selanjutnya.`;
                     } else {
                         el.value = parsedData[key];
                     }
-                    // Trigger events supaya warna form bertukar dan sistem tahu ada input
+                    
+                    // Paksa event "change" dan "input" untuk menggerakkan logik warna/tick
                     el.dispatchEvent(new Event('change', { bubbles: true }));
                     el.dispatchEvent(new Event('input', { bubbles: true }));
                 }
             });
-            switchTab('stb'); // Buka tab borang semakan (Tab Checker)
+            
+            // 2. KEMASKINI PENTING: Arahkan enjin local storage menyimpan form state 
+            // supaya data ini lekat dan difahami oleh sistem apabila tab ditukar
+            setTimeout(() => {
+                saveFormState('stb');
+                savePengesyorState();
+            }, 100);
+
+            // 3. Tukar ke tab borang semakan
+            switchTab('stb'); 
             return; // Berhenti di sini supaya tidak terus ke tab db
+            
         } catch (e) {
             console.error("Gagal parse borang_json", e);
         }
