@@ -5522,12 +5522,11 @@ Sila semak sistem STB untuk tindakan selanjutnya.`;
     tbody.innerHTML = rowsHtml;
 
     // =========================================================================
-    // KOD BARU: AUTO-INJECT TANDATANGAN & COP PENGESYOR DAN PELULUS
+    // KOD BARU: AUTO-INJECT TANDATANGAN & COP (PEMBAIKAN DRIVE PDF)
     // =========================================================================
     
     // Dapatkan nama pegawai
     const namaPengesyor = val('db_pengesyor') || val('pengesyor') || (currentUser && currentUser.role === 'PENGESYOR' ? currentUser.name : '');
-    // Untuk Pelulus, ambil dari pelulusActiveItem jika sedang diproses
     const namaPelulus = document.getElementById('pelulus_nama')?.value || (typeof pelulusActiveItem !== 'undefined' && pelulusActiveItem ? pelulusActiveItem.pelulus : '');
     const keputusanPelulus = document.getElementById('pelulus_keputusan')?.value || (typeof pelulusActiveItem !== 'undefined' && pelulusActiveItem ? pelulusActiveItem.kelulusan : '');
 
@@ -5537,22 +5536,26 @@ Sila semak sistem STB untuk tindakan selanjutnya.`;
     const imgSignPelulus = document.getElementById('print_pelulus_sign');
     const imgCopPelulus = document.getElementById('print_pelulus_cop');
     
-    // Reset paparan gambar
-    [imgSignPengesyor, imgCopPengesyor, imgSignPelulus, imgCopPelulus].forEach(img => { if(img) img.style.display = 'none'; });
+    // RESET PENTING: Sembunyikan & BUANG atribut 'src' supaya tak keluar ikon 'broken image' di PDF Drive
+    [imgSignPengesyor, imgCopPengesyor, imgSignPelulus, imgCopPelulus].forEach(img => { 
+        if (img) {
+            img.style.display = 'none'; 
+            img.removeAttribute('src'); 
+        }
+    });
 
-    // Cari URL gambar di dalam usersList yang telah di-cache
     if (typeof usersList !== 'undefined' && usersList.length > 0) {
         
         // 1. Masukkan Sign Pengesyor
         if (namaPengesyor) {
             const userPengesyor = usersList.find(u => u.name.toUpperCase() === namaPengesyor.toUpperCase());
             if (userPengesyor) {
-                if (userPengesyor.signUrl && imgSignPengesyor) { 
-                    imgSignPengesyor.src = userPengesyor.signUrl; 
+                if (userPengesyor.signUrl && userPengesyor.signUrl.trim() !== '') { 
+                    imgSignPengesyor.setAttribute('src', userPengesyor.signUrl.trim()); 
                     imgSignPengesyor.style.display = 'block'; 
                 }
-                if (userPengesyor.copUrl && imgCopPengesyor) { 
-                    imgCopPengesyor.src = userPengesyor.copUrl; 
+                if (userPengesyor.copUrl && userPengesyor.copUrl.trim() !== '') { 
+                    imgCopPengesyor.setAttribute('src', userPengesyor.copUrl.trim()); 
                     imgCopPengesyor.style.display = 'block'; 
                 }
             }
@@ -5562,12 +5565,12 @@ Sila semak sistem STB untuk tindakan selanjutnya.`;
         if (keputusanPelulus && keputusanPelulus.trim() !== '') {
             const userPelulus = usersList.find(u => u.name.toUpperCase() === namaPelulus.toUpperCase());
             if (userPelulus) {
-                if (userPelulus.signUrl && imgSignPelulus) { 
-                    imgSignPelulus.src = userPelulus.signUrl; 
+                if (userPelulus.signUrl && userPelulus.signUrl.trim() !== '') { 
+                    imgSignPelulus.setAttribute('src', userPelulus.signUrl.trim()); 
                     imgSignPelulus.style.display = 'block'; 
                 }
-                if (userPelulus.copUrl && imgCopPelulus) { 
-                    imgCopPelulus.src = userPelulus.copUrl; 
+                if (userPelulus.copUrl && userPelulus.copUrl.trim() !== '') { 
+                    imgCopPelulus.setAttribute('src', userPelulus.copUrl.trim()); 
                     imgCopPelulus.style.display = 'block'; 
                 }
                 
@@ -5585,9 +5588,7 @@ Sila semak sistem STB untuk tindakan selanjutnya.`;
                 const elTolak = document.getElementById('print_tolak');
                 
                 [elLulus, elLulusSyarat, elPemutihan, elTolak].forEach(el => { 
-                    if(el) {
-                        el.setAttribute('class', 'syor-dimmed'); 
-                    }
+                    if (el) el.setAttribute('class', 'syor-dimmed'); 
                 });
                 
                 if (keputusanPelulus === 'LULUS' && elLulus) elLulus.setAttribute('class', 'syor-selected');
@@ -5597,7 +5598,6 @@ Sila semak sistem STB untuk tindakan selanjutnya.`;
             }
         }
     }
-  }
 
   function setupAutoSaveListeners() {
     const checkerTab = document.getElementById('tab-checker');
