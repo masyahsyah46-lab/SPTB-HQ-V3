@@ -8323,7 +8323,7 @@ Sila semak sistem STB untuk tindakan selanjutnya.`;
     updateValidationCheckboxDisplay();
 
     // =====================================================================
-    // (KOD BARU) LANGKAH B: BUKA TAB BORANG SEMAKAN JIKA ADA JSON
+    // (KOD BARU KEMASKINI) LANGKAH B: RESTORE LENGKAP BORANG SEMAKAN & PERSONEL
     // =====================================================================
     saveDatabaseFormData();
     updateOpenDriveButton();
@@ -8332,33 +8332,61 @@ Sila semak sistem STB untuk tindakan selanjutnya.`;
         try {
             const parsedData = JSON.parse(item.borang_json);
             
-            // 1. Loop dan masukkan setiap nilai JSON ke dalam borang semakan
+            // 1. Masukkan nilai ke elemen berdasarkan ID
             Object.keys(parsedData).forEach(key => {
+                if (key === 'personnel' || key === 'jenisApp') return; // Skip khas untuk jenisApp & personnel
+                
                 const el = document.getElementById(key);
                 if (el) {
                     if (el.type === 'checkbox' || el.type === 'radio') {
                         el.checked = parsedData[key];
-                    } else {
+                    } else if (el.type !== 'file') {
                         el.value = parsedData[key];
                     }
-                    
-                    // Paksa event "change" dan "input" untuk menggerakkan logik warna/tick
                     el.dispatchEvent(new Event('change', { bubbles: true }));
                     el.dispatchEvent(new Event('input', { bubbles: true }));
                 }
             });
+
+            // 2. Set Radio Button jenisApp
+            if (parsedData.jenisApp) {
+                const radio = document.querySelector(`input[name="jenisApp"][value="${parsedData.jenisApp}"]`);
+                if (radio) {
+                    radio.checked = true;
+                    radio.dispatchEvent(new Event('change', { bubbles: true }));
+                }
+            }
+
+            // 3. Set Senarai Personel
+            const personnelListEl = document.getElementById('personnelList');
+            if (personnelListEl) personnelListEl.innerHTML = ''; // Kosongkan dahulu
+            if (parsedData.personnel && Array.isArray(parsedData.personnel) && parsedData.personnel.length > 0) {
+                parsedData.personnel.forEach(person => {
+                    addPerson(person); 
+                });
+            } else {
+                addPerson(); // Tambah satu yang kosong jika tiada data
+            }
+
+            // 4. SELAMATKAN KE DALAM MEMORI (HINDARI OVERWRITE OLEH switchTab)
+            formStates['stb'] = parsedData;
+            storageWrapper.set({ 'stb_form_states': formStates });
             
-            // 2. KEMASKINI PENTING: Arahkan enjin local storage menyimpan form state 
-            // supaya data ini lekat dan difahami oleh sistem apabila tab ditukar
+            // Re-initialize butang tick supaya warna berubah ikut data
             setTimeout(() => {
-                saveFormState('stb');
-                savePengesyorState();
+                initializeTickButtons();
             }, 100);
 
-            // 3. Tukar ke tab borang semakan
+            // 5. Buka tab Borang Semakan
             switchTab('stb'); 
-            return; // Berhenti di sini supaya tidak terus ke tab db
             
+            // 6. Suspend sekejap dan paksa simpan state terakhir (overwrite timer `switchTab`)
+            setTimeout(() => {
+                saveFormData();
+                savePengesyorState();
+            }, 250);
+
+            return; // Berhenti di sini supaya tidak melompat ke tab 'db'
         } catch (e) {
             console.error("Gagal parse borang_json", e);
         }
@@ -8775,11 +8803,12 @@ Sila semak sistem STB untuk tindakan selanjutnya.`;
       }
 
       // =====================================================================
-      // (KOD BARU) LANGKAH A: AMBIL DATA DARI BORANG SEMAKAN UNTUK DISIMPAN SEBAGAI JSON
+      // (KOD BARU KEMASKINI) LANGKAH A: TANGKAP SEMUA DATA BORANG & PERSONEL
       // =====================================================================
       const borangJsonData = {};
+      
       document.querySelectorAll('#tab-checker input, #tab-checker select, #tab-checker textarea').forEach(el => {
-        if (el.id && !el.id.includes('print_')) {
+        if (el.id && !el.id.includes('print_') && !el.id.includes('pelulus_') && !el.id.includes('login')) {
           if (el.type === 'checkbox' || el.type === 'radio') {
             borangJsonData[el.id] = el.checked;
           } else {
@@ -8787,6 +8816,28 @@ Sila semak sistem STB untuk tindakan selanjutnya.`;
           }
         }
       });
+      
+      // Ambil nilai radio button jenis permohonan secara manual
+      const selectedRadio = document.querySelector('input[name="jenisApp"]:checked');
+      if (selectedRadio) {
+        borangJsonData['jenisApp'] = selectedRadio.value;
+      }
+      
+      // Ambil maklumat personel dinamik
+      const personnelListObj = [];
+      document.querySelectorAll('.person-card').forEach(card => {
+        const roles = [];
+        card.querySelectorAll('.role-cb:checked').forEach(cb => roles.push(cb.value));
+        personnelListObj.push({
+          name: card.querySelector('.p-name')?.value || '',
+          isCompany: card.querySelector('.is-company')?.checked || false,
+          roles: roles,
+          s_ic: card.querySelector('.status-ic')?.value || '',
+          s_sb: card.querySelector('.status-sb')?.value || '',
+          s_epf: card.querySelector('.status-epf')?.value || ''
+        });
+      });
+      borangJsonData['personnel'] = personnelListObj;
       // =====================================================================
       
       const payload = {
@@ -8814,7 +8865,7 @@ Sila semak sistem STB untuk tindakan selanjutnya.`;
         ubah_maklumat: ubahMaklumatVal,
         ubah_gred: ubahGredVal,
         email: currentUser ? currentUser.email : '',
-        borang_json: JSON.stringify(borangJsonData) // <-- KOD BARU LANGKAH A DITAMBAH DI SINI
+        borang_json: JSON.stringify(borangJsonData) // JSON yang telah merangkumi semua elemen
       };
       
       if (isConfirmed) {
@@ -8846,7 +8897,6 @@ Sila semak sistem STB untuk tindakan selanjutnya.`;
         }
         
         if (whatsappUrl) {
-            // --- GANTI KEPADA MODAL ANIMASI DI SINI ---
             const isWaConfirmed = await CustomAppModal.confirm(
                 message + "<br><br>Adakah anda ingin buka dan hantar notifikasi WhatsApp sekarang?",
                 "Hantar WhatsApp",
@@ -8858,7 +8908,6 @@ Sila semak sistem STB untuk tindakan selanjutnya.`;
                 window.open(whatsappUrl, '_blank');
             }
         } else {
-            // --- GANTI KEPADA MODAL ANIMASI DI SINI ---
             await CustomAppModal.alert(message, "Selesai", "success");
         }
         
