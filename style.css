@@ -577,6 +577,20 @@
             border: 2px solid white;
             box-shadow: 0 2px 5px rgba(0,0,0,0.1);
         }
+        /* KOD BARU: Untuk Cetakan Borang Semakan (Highlight Syor) */
+        @media print {
+            .syor-selected {
+                border: 2px solid black !important;
+                padding: 3px 8px !important;
+                border-radius: 6px !important;
+                font-weight: 900 !important;
+                text-decoration: none !important;
+            }
+            .syor-dimmed {
+                text-decoration: line-through !important;
+                color: #888 !important;
+            }
+        }
         /* =========================================================================
            CUSTOM ANIMATED MODAL (PENGGANTI ALERT & CONFIRM CHROME)
            ========================================================================= */

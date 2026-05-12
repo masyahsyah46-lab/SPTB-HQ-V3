@@ -45,8 +45,8 @@ const ROLE_PENGARAH = "PENGARAH";
 const ROLE_KETUA_SEKSYEN = "KETUA_SEKSYEN";
 const ROLE_ADMIN = "ADMIN";
 
-// Jumlah lajur dalam sheet (A hingga AB = 28 lajur)
-const TOTAL_COLUMNS = 28;
+// Jumlah lajur dalam sheet (A hingga AC = 29 lajur)
+const TOTAL_COLUMNS = 29;
 
 // Email recipients for SPI notifications
 const EMAIL_TO_SPI = "suhaizal@kuskop.gov.my,hairul.ab@kuskop.gov.my";
@@ -1231,7 +1231,7 @@ function handleCetakDanSimpanPDF(data) {
     `;
 
     const blob = Utilities.newBlob(validHtmlContent, MimeType.HTML).getAs(MimeType.PDF);
-    const fileName = `Borang_Semakan_${data.company_name}.pdf`;
+    const fileName = data.custom_file_name ? data.custom_file_name + '.pdf' : 'Borang_Semakan_' + data.company_name + '.pdf';
     blob.setName(fileName);
     
     const pdfFile = typeFolder.createFile(blob);
@@ -1338,6 +1338,11 @@ function handleUpdateRecord(data, sheet) {
         data.ubah_gred !== undefined ? data.ubah_gred : currentPelulus[3]
       ];
       rangePelulus.setValues([updatedPelulus]);
+    }
+
+    // BLOK 5 (AC: Kolum 29) - borang_json
+    if (data.borang_json !== undefined) {
+      sheet.getRange(rowNum, 29).setValue(data.borang_json);
     }
     
     // AUTO EMAIL LOGIC
@@ -1472,7 +1477,7 @@ function handleInsertNewRecord(data, sheet, shouldCreateFolder) {
       }
     }
     
-    // Susunan kolum: A-O (1-15) | P-Q (16-17) STATUS & TARIKH HANTAR SPI | R-X (18-24) | Y-AB (25-28)
+    // Susunan kolum: A-O (1-15) | P-Q (16-17) STATUS & TARIKH HANTAR SPI | R-X (18-24) | Y-AB (25-28) | AC (29) BORANG JSON
     const newRow = [
       // A-O (Kolum 1-15)
       data.syarikat||"", data.cidb||"", data.gred||"", data.jenis||"", 
@@ -1496,7 +1501,9 @@ function handleInsertNewRecord(data, sheet, shouldCreateFolder) {
       data.tarikh_lulus||"", 
       data.pelulus||"",
       data.ubah_maklumat||"",         
-      data.ubah_gred||""
+      data.ubah_gred||"",
+      // AC (Kolum 29)
+      data.borang_json||""
     ];
 
     const targetRange = sheet.getRange(targetRow, 1, 1, newRow.length);
@@ -1733,7 +1740,7 @@ function getRepeatedApplicationsData() {
     if (!groupedByCIDB[cidb]) groupedByCIDB[cidb] = { cidb: cidb, syarikat: row[0] || '-', rekod: [] };
     
     groupedByCIDB[cidb].rekod.push({
-      row: index + 2, syarikat: row[0], cidb: row[1], gred: row[2], jenis: row[3], start_date: row[7], kelulusan: row[23], tarikh_lulus: row[24], pelulus: row[25]
+      row: index + 2, syarikat: row[0], cidb: row[1], gred: row[2], jenis: row[3], start_date: row[7], kelulusan: row[23], tarikh_lulus: row[24], pelulus: row[25], borang_json: row[28] || ""
     });
   });
 
@@ -1799,7 +1806,9 @@ function getApplicationsData(role, userName) {
       alamat_perniagaan: row[20], jenis_konsultansi: row[21], alasan: row[22], 
       kelulusan: row[23],
       // Y-AB
-      tarikh_lulus: row[24], pelulus: row[25], ubah_maklumat: row[26], ubah_gred: row[27]
+      tarikh_lulus: row[24], pelulus: row[25], ubah_maklumat: row[26], ubah_gred: row[27],
+      // AC
+      borang_json: row[28] || ""
     };
   });
   
