@@ -5598,6 +5598,7 @@ Sila semak sistem STB untuk tindakan selanjutnya.`;
             }
         }
     }
+  }
 
   function setupAutoSaveListeners() {
     const checkerTab = document.getElementById('tab-checker');
