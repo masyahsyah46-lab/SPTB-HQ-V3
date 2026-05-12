@@ -45,8 +45,8 @@ const ROLE_PENGARAH = "PENGARAH";
 const ROLE_KETUA_SEKSYEN = "KETUA_SEKSYEN";
 const ROLE_ADMIN = "ADMIN";
 
-// Jumlah lajur dalam sheet (A hingga AD = 30 lajur) - DIKEMASKINI V6.6.0
-const TOTAL_COLUMNS = 30;
+// Jumlah lajur dalam sheet (A hingga AB = 28 lajur)
+const TOTAL_COLUMNS = 28;
 
 // Email recipients for SPI notifications
 const EMAIL_TO_SPI = "suhaizal@kuskop.gov.my,hairul.ab@kuskop.gov.my";
@@ -182,7 +182,6 @@ function getAuthenticatedUserEmail(email) {
 
 /**
  * Fungsi untuk mencari profil pengguna dari Sheet 'Users' berdasarkan emel
- * DIKEMASKINI V6.6.0: Menggunakan padanan tepat (===) untuk header dan menambah NAMA PENUH, JAWATAN, JABATAN
  * @param {string} email - Alamat emel pengguna
  * @returns {Object|null} - Objek pengguna atau null jika tidak dijumpai
  */
@@ -192,37 +191,30 @@ function findUserByEmail(email) {
     const sheet = ss.getSheetByName(USERS_SHEET_NAME);
     
     if (!sheet) {
-      Logger.log(`[V6.6.0] Sheet '${USERS_SHEET_NAME}' tidak dijumpai`);
+      Logger.log(`[V6.5.0] Sheet '${USERS_SHEET_NAME}' tidak dijumpai`);
       return null;
     }
     
     const data = sheet.getDataRange().getDisplayValues();
     if (!data || data.length < 2) {
-      Logger.log(`[V6.6.0] Sheet '${USERS_SHEET_NAME}' tiada data`);
+      Logger.log(`[V6.5.0] Sheet '${USERS_SHEET_NAME}' tiada data`);
       return null;
     }
     
     const headers = data.shift();
-    
-    // V6.6.0: Gunakan padanan tepat (===) untuk header
-    const nameColIndex = headers.findIndex(h => h && h.toString().trim().toUpperCase() === 'NAMA');
-    const fullNameColIndex = headers.findIndex(h => h && h.toString().trim().toUpperCase() === 'NAMA PENUH');
-    const emailColIndex = headers.findIndex(h => h && h.toString().trim().toUpperCase() === 'EMEL');
-    const roleColIndex = headers.findIndex(h => h && h.toString().trim().toUpperCase() === 'ROLE');
-    const colorColIndex = headers.findIndex(h => h && h.toString().trim().toUpperCase() === 'WARNA');
-    const phoneColIndex = headers.findIndex(h => h && h.toString().trim().toUpperCase() === 'NO TELEFON');
-    const jawatanColIndex = headers.findIndex(h => h && h.toString().trim().toUpperCase() === 'JAWATAN');
-    const jabatanColIndex = headers.findIndex(h => h && h.toString().trim().toUpperCase() === 'JABATAN');
+    // Cari indeks lajur berdasarkan nama header
+    const nameColIndex = headers.findIndex(h => h && h.toString().toUpperCase().includes('NAMA'));
+    const emailColIndex = headers.findIndex(h => h && (h.toString().toUpperCase().includes('EMEL') || h.toString().toUpperCase().includes('EMAIL') || h.toString().toUpperCase().includes('E-MEL')));
+    const roleColIndex = headers.findIndex(h => h && h.toString().toUpperCase().includes('ROLE'));
+    const colorColIndex = headers.findIndex(h => h && (h.toString().toUpperCase().includes('WARNA') || h.toString().toUpperCase().includes('COLOR')));
+    const phoneColIndex = headers.findIndex(h => h && (h.toString().toUpperCase().includes('TELEFON') || h.toString().toUpperCase().includes('PHONE') || h.toString().toUpperCase().includes('NO TEL')));
     
     const finalNameIndex = nameColIndex !== -1 ? nameColIndex : 0;
-    const finalFullNameIndex = fullNameColIndex !== -1 ? fullNameColIndex : -1;
     const finalEmailIndex = emailColIndex !== -1 ? emailColIndex : 1;
     const finalRoleIndex = roleColIndex !== -1 ? roleColIndex : 2;
     const finalColorIndex = colorColIndex !== -1 ? colorColIndex : 3;
     const finalPhoneIndex = phoneColIndex !== -1 ? phoneColIndex : 5;
     const finalImageIndex = 6;
-    const finalJawatanIndex = jawatanColIndex !== -1 ? jawatanColIndex : -1;
-    const finalJabatanIndex = jabatanColIndex !== -1 ? jabatanColIndex : -1;
     
     // Cari pengguna berdasarkan emel (case-insensitive)
     const normalizedSearchEmail = email.toLowerCase().trim();
@@ -233,31 +225,28 @@ function findUserByEmail(email) {
       
       if (rowEmail === normalizedSearchEmail) {
         const safeGet = (index, defaultValue = '') => {
-          return row && index >= 0 && row[index] !== undefined && row[index] !== null ? String(row[index]).trim() : defaultValue;
+          return row && row[index] !== undefined && row[index] !== null ? String(row[index]).trim() : defaultValue;
         };
         
         const user = {
           name: safeGet(finalNameIndex),
-          nama_penuh: safeGet(finalFullNameIndex),
           email: safeGet(finalEmailIndex),
           role: safeGet(finalRoleIndex).toUpperCase(),
           color: safeGet(finalColorIndex),
           phone: safeGet(finalPhoneIndex),
-          imageUrl: safeGet(finalImageIndex),
-          jawatan: safeGet(finalJawatanIndex),
-          jabatan: safeGet(finalJabatanIndex)
+          imageUrl: safeGet(finalImageIndex)
         };
 
-        Logger.log(`[V6.6.0] Pengguna dijumpai: ${user.name} (${user.email}) - Role: ${user.role} - Nama Penuh: ${user.nama_penuh}`);
+        Logger.log(`[V6.5.0] Pengguna dijumpai: ${user.name} (${user.email}) - Role: ${user.role}`);
         return user;
       }
     }
     
-    Logger.log(`[V6.6.0] Tiada padanan pengguna untuk emel: ${email}`);
+    Logger.log(`[V6.5.0] Tiada padanan pengguna untuk emel: ${email}`);
     return null;
     
   } catch (error) {
-    Logger.log(`[V6.6.0] Ralat mencari pengguna: ${error.toString()}`);
+    Logger.log(`[V6.5.0] Ralat mencari pengguna: ${error.toString()}`);
     return null;
   }
 }
@@ -1162,7 +1151,6 @@ Sila ambil tindakan sewajarnya.
 
 /**
  * FUNGSI BAHARU: Mengendalikan cetakan HTML ke PDF dan simpan ke Drive
- * DIKEMASKINI V6.6.0: Menerima pdf_version_tag untuk penamaan fail
  */
 function handleCetakDanSimpanPDF(data) {
   try {
@@ -1243,10 +1231,7 @@ function handleCetakDanSimpanPDF(data) {
     `;
 
     const blob = Utilities.newBlob(validHtmlContent, MimeType.HTML).getAs(MimeType.PDF);
-    
-    // V6.6.0: Gunakan pdf_version_tag untuk penamaan fail jika disediakan
-    const pdfTag = data.pdf_version_tag ? ` (${data.pdf_version_tag})` : '';
-    const fileName = `Borang_Semakan_${data.company_name}${pdfTag}.pdf`;
+    const fileName = `Borang_Semakan_${data.company_name}.pdf`;
     blob.setName(fileName);
     
     const pdfFile = typeFolder.createFile(blob);
@@ -1254,7 +1239,7 @@ function handleCetakDanSimpanPDF(data) {
     logActivity(
       data.user_name, 
       'CETAK_PDF', 
-      `PDF Borang Semakan disimpan untuk ${data.company_name} (Warna: ${themeColor}, Tag: ${pdfTag || 'Tiada'})`, 
+      `PDF Borang Semakan disimpan untuk ${data.company_name} (Warna: ${themeColor})`, 
       typeFolder.getId()
     );
 
@@ -1277,7 +1262,6 @@ function handleCetakDanSimpanPDF(data) {
 
 /**
  * FUNGSI KEMASKINI REKOD
- * DIKEMASKINI V6.6.0: Menyokong borang_json dan borang_json_pelulus (AC & AD)
  */
 function handleUpdateRecord(data, sheet) {
   try {
@@ -1356,17 +1340,6 @@ function handleUpdateRecord(data, sheet) {
       rangePelulus.setValues([updatedPelulus]);
     }
     
-    // V6.6.0: BLOK 5 (AC-AD: Kolum 29-30) - borang_json & borang_json_pelulus
-    if (data.borang_json !== undefined || data.borang_json_pelulus !== undefined) {
-      const rangeJSON = sheet.getRange(rowNum, 29, 1, 2);
-      const currentJSON = rangeJSON.getValues()[0];
-      const updatedJSON = [
-        data.borang_json !== undefined ? data.borang_json : currentJSON[0],
-        data.borang_json_pelulus !== undefined ? data.borang_json_pelulus : currentJSON[1]
-      ];
-      rangeJSON.setValues([updatedJSON]);
-    }
-    
     // AUTO EMAIL LOGIC
     let syorLawatanValue = data.syor_lawatan_baru !== undefined ? data.syor_lawatan_baru : (data.syor_lawatan !== undefined ? data.syor_lawatan : existingData[8]);
     let dateSubmitValue = data.date_submit !== undefined ? data.date_submit : existingData[9];
@@ -1393,9 +1366,9 @@ function handleUpdateRecord(data, sheet) {
 
       try {
         addToSiasatQueue(emailData);
-        console.log(`[V6.6.0] SPI SIASAT queued for daily 10AM for row ${rowNum}: ${emailData.syarikat}`);
+        console.log(`[V6.5.0] SPI SIASAT queued for daily 10AM for row ${rowNum}: ${emailData.syarikat}`);
       } catch (queueError) {
-        console.error(`[V6.6.0] Failed to queue SPI SIASAT on update: ${queueError.toString()}`);
+        console.error(`[V6.5.0] Failed to queue SPI SIASAT on update: ${queueError.toString()}`);
       }
     }
     
@@ -1422,9 +1395,9 @@ function handleUpdateRecord(data, sheet) {
 
       try {
         addToPemutihanQueue(emailDataPemutihan);
-        console.log(`[V6.6.0] SPI PEMUTIHAN queued for Friday 11AM for row ${rowNum}: ${emailDataPemutihan.syarikat}`);
+        console.log(`[V6.5.0] SPI PEMUTIHAN queued for Friday 11AM for row ${rowNum}: ${emailDataPemutihan.syarikat}`);
       } catch (queueError) {
-        console.error(`[V6.6.0] Failed to queue SPI PEMUTIHAN on update: ${queueError.toString()}`);
+        console.error(`[V6.5.0] Failed to queue SPI PEMUTIHAN on update: ${queueError.toString()}`);
       }
     }
     
@@ -1463,7 +1436,6 @@ function handleUpdateRecord(data, sheet) {
 
 /**
  * FUNGSI TAMBAH REKOD BARU
- * DIKEMASKINI V6.6.0: Menyokong borang_json dan borang_json_pelulus (AC & AD)
  */
 function handleInsertNewRecord(data, sheet, shouldCreateFolder) {
   try {
@@ -1500,7 +1472,7 @@ function handleInsertNewRecord(data, sheet, shouldCreateFolder) {
       }
     }
     
-    // Susunan kolum: A-O (1-15) | P-Q (16-17) STATUS & TARIKH HANTAR SPI | R-X (18-24) | Y-AB (25-28) | AC-AD (29-30) BORANG JSON
+    // Susunan kolum: A-O (1-15) | P-Q (16-17) STATUS & TARIKH HANTAR SPI | R-X (18-24) | Y-AB (25-28)
     const newRow = [
       // A-O (Kolum 1-15)
       data.syarikat||"", data.cidb||"", data.gred||"", data.jenis||"", 
@@ -1524,10 +1496,7 @@ function handleInsertNewRecord(data, sheet, shouldCreateFolder) {
       data.tarikh_lulus||"", 
       data.pelulus||"",
       data.ubah_maklumat||"",         
-      data.ubah_gred||"",
-      // V6.6.0: AC-AD (Kolum 29-30) - borang_json & borang_json_pelulus
-      data.borang_json||"",
-      data.borang_json_pelulus||""
+      data.ubah_gred||""
     ];
 
     const targetRange = sheet.getRange(targetRow, 1, 1, newRow.length);
@@ -1557,9 +1526,9 @@ function handleInsertNewRecord(data, sheet, shouldCreateFolder) {
 
       try {
         addToSiasatQueue(emailData);
-        console.log(`[V6.6.0] SPI SIASAT queued for daily 10AM on insert for row ${targetRow}: ${emailData.syarikat}`);
+        console.log(`[V6.5.0] SPI SIASAT queued for daily 10AM on insert for row ${targetRow}: ${emailData.syarikat}`);
       } catch (queueError) {
-        console.error(`[V6.6.0] Failed to queue SPI SIASAT on insert: ${queueError.toString()}`);
+        console.error(`[V6.5.0] Failed to queue SPI SIASAT on insert: ${queueError.toString()}`);
       }
     }
     
@@ -1643,9 +1612,6 @@ function handleDeleteRecord(data, sheet) {
   }
 }
 
-/**
- * DIKEMASKINI V6.6.0: Menggunakan padanan tepat (===) untuk header dan menambah NAMA PENUH, JAWATAN, JABATAN
- */
 function getUsersData() {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   const sheet = ss.getSheetByName(USERS_SHEET_NAME);
@@ -1654,42 +1620,22 @@ function getUsersData() {
   if (!data || data.length < 2) return createJSONOutput([]);
   
   const headers = data.shift();
-  
-  // V6.6.0: Gunakan padanan tepat (===)
-  const nameColIndex = headers.findIndex(h => h && h.toString().trim().toUpperCase() === 'NAMA');
-  const fullNameColIndex = headers.findIndex(h => h && h.toString().trim().toUpperCase() === 'NAMA PENUH');
-  const emailColIndex = headers.findIndex(h => h && h.toString().trim().toUpperCase() === 'EMEL');
-  const roleColIndex = headers.findIndex(h => h && h.toString().trim().toUpperCase() === 'ROLE');
-  const colorColIndex = headers.findIndex(h => h && h.toString().trim().toUpperCase() === 'WARNA');
-  const phoneColIndex = headers.findIndex(h => h && h.toString().trim().toUpperCase() === 'NO TELEFON');
-  const jawatanColIndex = headers.findIndex(h => h && h.toString().trim().toUpperCase() === 'JAWATAN');
-  const jabatanColIndex = headers.findIndex(h => h && h.toString().trim().toUpperCase() === 'JABATAN');
+  const nameColIndex = headers.findIndex(h => h && h.toString().toUpperCase().includes('NAMA'));
+  const emailColIndex = headers.findIndex(h => h && (h.toString().toUpperCase().includes('EMEL') || h.toString().toUpperCase().includes('EMAIL') || h.toString().toUpperCase().includes('E-MEL')));
+  const roleColIndex = headers.findIndex(h => h && h.toString().toUpperCase().includes('ROLE'));
+  const colorColIndex = headers.findIndex(h => h && (h.toString().toUpperCase().includes('WARNA') || h.toString().toUpperCase().includes('COLOR')));
+  const phoneColIndex = headers.findIndex(h => h && (h.toString().toUpperCase().includes('TELEFON') || h.toString().toUpperCase().includes('PHONE') || h.toString().toUpperCase().includes('NO TEL')));
   
   const finalNameIndex = nameColIndex !== -1 ? nameColIndex : 0;
-  const finalFullNameIndex = fullNameColIndex !== -1 ? fullNameColIndex : -1;
   const finalEmailIndex = emailColIndex !== -1 ? emailColIndex : 1;
   const finalRoleIndex = roleColIndex !== -1 ? roleColIndex : 2;
   const finalColorIndex = colorColIndex !== -1 ? colorColIndex : 3;
   const finalPhoneIndex = phoneColIndex !== -1 ? phoneColIndex : 5;
   const finalImageIndex = 6;
-  const finalJawatanIndex = jawatanColIndex !== -1 ? jawatanColIndex : -1;
-  const finalJabatanIndex = jabatanColIndex !== -1 ? jabatanColIndex : -1;
 
   const users = data.map(row => {
-    const safeGet = (index, defaultValue = '') => { 
-      return row && index >= 0 && row[index] !== undefined && row[index] !== null ? String(row[index]).trim() : defaultValue; 
-    };
-    return { 
-      name: safeGet(finalNameIndex), 
-      nama_penuh: safeGet(finalFullNameIndex),
-      email: safeGet(finalEmailIndex), 
-      role: safeGet(finalRoleIndex).toUpperCase(), 
-      color: safeGet(finalColorIndex), 
-      phone: safeGet(finalPhoneIndex), 
-      imageUrl: safeGet(finalImageIndex),
-      jawatan: safeGet(finalJawatanIndex),
-      jabatan: safeGet(finalJabatanIndex)
-    };
+    const safeGet = (index, defaultValue = '') => { return row && row[index] !== undefined && row[index] !== null ? String(row[index]).trim() : defaultValue; };
+    return { name: safeGet(finalNameIndex), email: safeGet(finalEmailIndex), role: safeGet(finalRoleIndex).toUpperCase(), color: safeGet(finalColorIndex), phone: safeGet(finalPhoneIndex), imageUrl: safeGet(finalImageIndex) };
   }).filter(user => user.name !== "");
   return createJSONOutput(users);
 }
@@ -1768,9 +1714,6 @@ function getStatisticsData(role, userName) {
   return createJSONOutput({ total: total, lulus: lulus, tolak: tolak, proses: proses, monthlyStats: monthlyStats, yearStats: yearStats, pengesyorStats: pengesyorStats, pelulusStats: pelulusStats });
 }
 
-/**
- * DIKEMASKINI V6.6.0: Menambah borang_json dan borang_json_pelulus dalam output
- */
 function getRepeatedApplicationsData() {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   const sheet = ss.getSheetByName(SHEET_NAME);
@@ -1790,18 +1733,7 @@ function getRepeatedApplicationsData() {
     if (!groupedByCIDB[cidb]) groupedByCIDB[cidb] = { cidb: cidb, syarikat: row[0] || '-', rekod: [] };
     
     groupedByCIDB[cidb].rekod.push({
-      row: index + 2, 
-      syarikat: row[0], 
-      cidb: row[1], 
-      gred: row[2], 
-      jenis: row[3], 
-      start_date: row[7], 
-      kelulusan: row[23], 
-      tarikh_lulus: row[24], 
-      pelulus: row[25],
-      // V6.6.0: Tambah borang_json dan borang_json_pelulus
-      borang_json: row[28] || '',
-      borang_json_pelulus: row[29] || ''
+      row: index + 2, syarikat: row[0], cidb: row[1], gred: row[2], jenis: row[3], start_date: row[7], kelulusan: row[23], tarikh_lulus: row[24], pelulus: row[25]
     });
   });
 
@@ -1815,9 +1747,6 @@ function getRepeatedApplicationsData() {
   return createJSONOutput(repeatedCompanies);
 }
 
-/**
- * DIKEMASKINI V6.6.0: Menambah borang_json dan borang_json_pelulus dalam output
- */
 function getApplicationsData(role, userName) {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   const sheet = ss.getSheetByName(SHEET_NAME);
@@ -1870,10 +1799,7 @@ function getApplicationsData(role, userName) {
       alamat_perniagaan: row[20], jenis_konsultansi: row[21], alasan: row[22], 
       kelulusan: row[23],
       // Y-AB
-      tarikh_lulus: row[24], pelulus: row[25], ubah_maklumat: row[26], ubah_gred: row[27],
-      // V6.6.0: AC-AD - borang_json & borang_json_pelulus
-      borang_json: row[28] || "",
-      borang_json_pelulus: row[29] || ""
+      tarikh_lulus: row[24], pelulus: row[25], ubah_maklumat: row[26], ubah_gred: row[27]
     };
   });
   
@@ -1955,7 +1881,7 @@ function handleCreateDriveFolderAction(data) {
     let typeFolder = findFolderInParent(companyFolder, appType);
     if (!typeFolder) typeFolder = companyFolder.createFolder(appType);
     
-    logActivity(userName, 'CREATE_FOLDER_USER', `Folder dicipta (V6.6.0): ${companyName} > ${appType}`, typeFolder.getId());
+    logActivity(userName, 'CREATE_FOLDER_USER', `Folder dicipta (V6.5.0): ${companyName} > ${appType}`, typeFolder.getId());
 
     return createJSONOutput({ success: true, folder_url: typeFolder.getUrl(), folder_id: typeFolder.getId(), folder_path: `${MAIN_FOLDER_NAME} > ${userName} > ${companyName} > ${appType}`, user_folder_url: userFolder.getUrl(), message: `Folder berjaya dicipta` });
   } catch (err) {
@@ -2051,7 +1977,7 @@ function testDeleteRecord() {
 }
 
 function testCetakDanSimpanPDF() {
-  const testData = { action: 'cetak_dan_simpan_pdf', htmlContent: '<div class="print-header"><h1>Borang Semakan</h1><p>Ini adalah kandungan ujian.</p></div>', company_name: 'SYARIKAT TEST', user_name: 'Zariff Fahmi', application_type: 'BARU - 21-04-2026', user_color: '#ff6b35', pdf_version_tag: 'LENGKAP' };
+  const testData = { action: 'cetak_dan_simpan_pdf', htmlContent: '<div class="print-header"><h1>Borang Semakan</h1><p>Ini adalah kandungan ujian.</p></div>', company_name: 'SYARIKAT TEST', user_name: 'Zariff Fahmi', application_type: 'BARU - 21-04-2026', user_color: '#ff6b35' };
   const result = handleCetakDanSimpanPDF(testData);
   console.log(result.getContent());
   return result;
@@ -2068,7 +1994,7 @@ function testProcessAI() {
 function testSendEmailPermission() {
   try {
     const userEmail = Session.getActiveUser().getEmail();
-    MailApp.sendEmail({ to: userEmail, subject: "Test Permission V6.6.0", body: "Test sahaja.", name: EMAIL_SENDER_NAME });
+    MailApp.sendEmail({ to: userEmail, subject: "Test Permission V6.5.0", body: "Test sahaja.", name: EMAIL_SENDER_NAME });
     return createJSONOutput({ success: true, message: `Emel ujian berjaya dihantar ke ${userEmail} dari ${EMAIL_SENDER_NAME}.` });
   } catch (error) {
     return createJSONOutput({ success: false, message: `Gagal menghantar emel ujian: ${error.toString()}` });
@@ -2117,7 +2043,7 @@ function testSearchYoutube() {
 }
 
 // =========================================================================
-// FUNGSI BERJADUAL: KUMPULAN EMEL PEMUTIHAN (SETIAP JUMAAT 11 PAGI - Kitaran 2 Minggu)
+// FUNGSI BERJADUAL: KUMPULAN EMEL PEMUTIHAN (SETIAP JUMAAT 10 PAGI - Kitaran 2 Minggu)
 // =========================================================================
 function addToPemutihanQueue(emailData) {
   const props = PropertiesService.getScriptProperties();
@@ -2231,13 +2157,13 @@ function setupPemutihanCronJob() {
     .timeBased()
     .everyWeeks(2) 
     .onWeekDay(ScriptApp.WeekDay.FRIDAY) 
-    .atHour(11) 
+    .atHour(10) 
     .create();
-  console.log("✅ Cron job Dwi-Mingguan Pemutihan berjaya ditetapkan setiap hari Jumaat jam 11 pagi, setiap 2 minggu.");
+  console.log("✅ Cron job Dwi-Mingguan Pemutihan berjaya ditetapkan setiap hari Jumaat jam 10 pagi, setiap 2 minggu.");
 }
 
 // =========================================================================
-// FUNGSI BERJADUAL: KUMPULAN EMEL SIASAT BIASA (SETIAP HARI BEKERJA 10 PAGI)
+// FUNGSI BERJADUAL: KUMPULAN EMEL SIASAT BIASA (SETIAP HARI BEKERJA 9 PAGI)
 // =========================================================================
 function addToSiasatQueue(emailData) {
   const props = PropertiesService.getScriptProperties();
@@ -2357,9 +2283,9 @@ function setupSiasatCronJob() {
   ScriptApp.newTrigger('processSiasatQueue')
     .timeBased()
     .everyDays(1)
-    .atHour(10) 
+    .atHour(9) 
     .create();
-  console.log("✅ Cron job Siasat Biasa berjaya ditetapkan setiap hari jam 10 pagi.");
+  console.log("✅ Cron job Siasat Biasa berjaya ditetapkan setiap hari jam 9 pagi.");
 }
 
 // =========================================================================
@@ -2369,7 +2295,7 @@ function setupSiasatCronJob() {
 function lihatSenaraiQueue() {
   const props = PropertiesService.getScriptProperties();
 
-  console.log("=== QUEUE PEMUTIHAN (JUMAAT 11 PAGI SETIAP 2 MINGGU) ===");
+  console.log("=== QUEUE PEMUTIHAN (JUMAAT 10 PAGI SETIAP 2 MINGGU) ===");
   const pemutihanQ = props.getProperty('PEMUTIHAN_QUEUE');
   if (pemutihanQ) {
     const pData = JSON.parse(pemutihanQ);
@@ -2381,7 +2307,7 @@ function lihatSenaraiQueue() {
     console.log("Tiada data dalam queue Pemutihan.");
   }
 
-  console.log("\n=== QUEUE SIASAT BIASA (HARI BEKERJA 10 PAGI) ===");
+  console.log("\n=== QUEUE SIASAT BIASA (HARI BEKERJA 9 PAGI) ===");
   const siasatQ = props.getProperty('SIASAT_QUEUE');
   if (siasatQ) {
     const sData = JSON.parse(siasatQ);
