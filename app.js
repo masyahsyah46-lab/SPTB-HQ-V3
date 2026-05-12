@@ -716,6 +716,8 @@ async function handleCredentialResponse(response) {
   const loginLoadingText = document.getElementById('loginLoadingText');
   const userBadge = document.getElementById('userBadge');
   const listStatus = document.getElementById('listStatus');
+  const openFullBtn = document.getElementById('openFullBtn');
+  const openFullBtnPelulus = document.getElementById('openFullBtnPelulus');
   const dbSyor = document.getElementById('db_syor');
   const dbPautanInput = document.getElementById('db_pautan');
   const btnSyncToDb = document.getElementById('btnSyncToDb');
@@ -905,6 +907,8 @@ async function handleCredentialResponse(response) {
   // Butang CSV
   const btnAdminCsv = document.getElementById('btnAdminCsv');
   
+  // Butang Paparan Penuh Admin
+  const btnAdminFullView = document.getElementById('btnAdminFullView');
   
   // Chart Elements for Application Type Analysis
   const chartTypeMonthly = document.getElementById('chartTypeMonthly');
@@ -8666,6 +8670,7 @@ Sila semak sistem STB untuk tindakan selanjutnya.`;
 
     const btnToApproval = document.getElementById('btnToApproval');
     const btnViewBack = document.getElementById('btnViewBack');
+    const btnOpenFull = document.getElementById('openFullBtnPelulus');
 
     if(readOnly) {
       if(btnToApproval) btnToApproval.style.display = 'none';
@@ -8673,6 +8678,10 @@ Sila semak sistem STB untuk tindakan selanjutnya.`;
     } else {
       if(btnToApproval) btnToApproval.style.display = 'inline-block';
       if(btnViewBack) btnViewBack.style.display = 'none';
+    }
+
+    if (btnOpenFull) {
+        btnOpenFull.style.display = 'inline-block';
     }
   }
 
