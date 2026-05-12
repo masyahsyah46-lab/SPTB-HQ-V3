@@ -4960,6 +4960,21 @@ Sila semak sistem STB untuk tindakan selanjutnya.`;
         background: white;
       }
       
+      /* GAYA BARU: Penandaan Syor untuk PDF */
+      .syor-selected {
+        border: 2px solid black !important;
+        padding: 2px 8px !important;
+        border-radius: 6px !important;
+        font-weight: 900 !important;
+        background-color: #f3f4f6 !important;
+        display: inline-block !important;
+      }
+      .syor-dimmed {
+        text-decoration: line-through !important;
+        color: #888 !important;
+        opacity: 0.5;
+      }
+      
       .print-header-strip {
         height: 6px;
         background-color: ${themeColor};
@@ -5266,19 +5281,19 @@ Sila semak sistem STB untuk tindakan selanjutnya.`;
       
       if (printLayoutElement) printLayoutElement.style.display = 'none';
       
-      // KOD BARU: Nama file PDF spesifik
+      // KOD BARU: Nama file PDF spesifik (Title Case)
       const syorChoice = document.getElementById('borang_syor_status')?.value;
-      let customFileName = `Borang_Semakan_${companyName}`;
+      let customFileName = `Borang Semakan ${companyName}`; 
       
       if (syorChoice === 'SOKONG') {
           const tProses = document.getElementById('borang_tarikh_proses')?.value || '';
-          customFileName = `borang semakan sokong-${tProses}`;
+          customFileName = `Borang Semakan Sokong-${tProses}`;
       } else if (syorChoice === 'TIDAK DISOKONG') {
           const tProses = document.getElementById('borang_tarikh_proses')?.value || '';
-          customFileName = `borang semakan tidak disokong-${tProses}`;
+          customFileName = `Borang Semakan Tidak Disokong-${tProses}`;
       } else if (syorChoice === 'SIASAT') {
           const tLengkap = document.getElementById('borang_tarikh_lengkap')?.value || '';
-          customFileName = `borang semakan siasat-${tLengkap}`;
+          customFileName = `Borang Semakan Siasat-${tLengkap}`;
       }
 
       const payload = {
@@ -5365,14 +5380,21 @@ Sila semak sistem STB untuk tindakan selanjutnya.`;
       return el ? el.value.toUpperCase() : ''; 
     };
 
+    // Kemaskini Checkbox untuk PDF
     const selectedType = document.querySelector('input[name="jenisApp"]:checked')?.value;
     ['baru', 'pembaharuan', 'ubah_maklumat', 'ubah_gred'].forEach(type => {
       const cb = document.getElementById(`print_type_${type}`);
-      if(cb) cb.checked = false;
+      if(cb) {
+          cb.checked = false;
+          cb.removeAttribute('checked');
+      }
     });
     if(selectedType) {
       const targetCb = document.getElementById(`print_type_${selectedType}`);
-      if(targetCb) targetCb.checked = true;
+      if(targetCb) {
+          targetCb.checked = true;
+          targetCb.setAttribute('checked', 'checked'); // PENTING: Untuk Drive
+      }
     }
 
     const setTxt = (id, val) => { 
@@ -5421,24 +5443,24 @@ Sila semak sistem STB untuk tindakan selanjutnya.`;
     setTxt('print_tarikh_siasatan', val('borang_tarikh_siasatan') ? formatDateDisplay(val('borang_tarikh_siasatan')) : '_____________');
     setTxt('print_tarikh_proses', val('borang_tarikh_proses') ? formatDateDisplay(val('borang_tarikh_proses')) : '_____________');
 
-    // KOD BARU: Highlight Keputusan Syor pada PDF
+    // Kemaskini Highlight Syor untuk PDF
     const syorPilihan = val('borang_syor_status');
     const elSokong = document.getElementById('print_syor_sokong');
     const elSiasat = document.getElementById('print_syor_siasat');
     const elTidak = document.getElementById('print_syor_tidak_sokong');
 
     [elSokong, elSiasat, elTidak].forEach(el => {
-        if(el) { el.className = 'syor-dimmed'; }
+        if(el) { 
+            el.setAttribute('class', 'syor-dimmed'); // Gunakan setAttribute
+        }
     });
 
     if(syorPilihan === 'SOKONG' && elSokong) {
-        elSokong.className = 'syor-selected';
+        elSokong.setAttribute('class', 'syor-selected');
     } else if(syorPilihan === 'SIASAT' && elSiasat) {
-        elSiasat.className = 'syor-selected';
+        elSiasat.setAttribute('class', 'syor-selected');
     } else if(syorPilihan === 'TIDAK DISOKONG' && elTidak) {
-        elTidak.className = 'syor-selected';
-    } else {
-        [elSokong, elSiasat, elTidak].forEach(el => { if(el) el.className = ''; });
+        elTidak.setAttribute('class', 'syor-selected');
     }
 
     const tbody = document.getElementById('print_personnel_page1');
