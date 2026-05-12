@@ -1340,6 +1340,10 @@
             .pengesyor-dates { font-size: 12pt; line-height: 1.6; font-weight: 700; }
             .pengesyor-sign-box { width: 45%; display: flex; flex-direction: column; justify-content: flex-end; text-align: center; font-weight: 700; }
             .verification-separator { border-bottom: 2px solid #000; margin: 5px 0; }
+            .verification-box {
+            page-break-inside: avoid !important;
+            break-inside: avoid !important;
+        }
             #printProfileLayout { font-family: 'Arial', sans-serif; padding: 5px; margin: 0 auto; width: 100%; max-width: 100%; box-sizing: border-box; font-size: 12pt !important; }
             #printProfileLayout .profile-header { text-align: center; margin-bottom: 15px; border-bottom: 2px solid #000; padding-bottom: 8px; }
             #printProfileLayout .profile-title { font-size: 20pt !important; font-weight: bold; margin: 5px 0; color: #1e40af; }

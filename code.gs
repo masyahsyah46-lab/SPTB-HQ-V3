@@ -208,6 +208,9 @@ function findUserByEmail(email) {
     const roleColIndex = headers.findIndex(h => h && h.toString().toUpperCase().includes('ROLE'));
     const colorColIndex = headers.findIndex(h => h && (h.toString().toUpperCase().includes('WARNA') || h.toString().toUpperCase().includes('COLOR')));
     const phoneColIndex = headers.findIndex(h => h && (h.toString().toUpperCase().includes('TELEFON') || h.toString().toUpperCase().includes('PHONE') || h.toString().toUpperCase().includes('NO TEL')));
+    // V6.5.1: Cari indeks untuk Tandatangan dan Cop
+    const signColIndex = headers.findIndex(h => h && (h.toString().toUpperCase().includes('TANDATANGAN') || h.toString().toUpperCase().includes('SIGN')));
+    const copColIndex = headers.findIndex(h => h && (h.toString().toUpperCase().includes('COP') || h.toString().toUpperCase().includes('STAMP')));
     
     const finalNameIndex = nameColIndex !== -1 ? nameColIndex : 0;
     const finalEmailIndex = emailColIndex !== -1 ? emailColIndex : 1;
@@ -215,6 +218,8 @@ function findUserByEmail(email) {
     const finalColorIndex = colorColIndex !== -1 ? colorColIndex : 3;
     const finalPhoneIndex = phoneColIndex !== -1 ? phoneColIndex : 5;
     const finalImageIndex = 6;
+    const finalSignIndex = signColIndex !== -1 ? signColIndex : -1;
+    const finalCopIndex = copColIndex !== -1 ? copColIndex : -1;
     
     // Cari pengguna berdasarkan emel (case-insensitive)
     const normalizedSearchEmail = email.toLowerCase().trim();
@@ -234,7 +239,10 @@ function findUserByEmail(email) {
           role: safeGet(finalRoleIndex).toUpperCase(),
           color: safeGet(finalColorIndex),
           phone: safeGet(finalPhoneIndex),
-          imageUrl: safeGet(finalImageIndex)
+          imageUrl: safeGet(finalImageIndex),
+          // V6.5.1: Tambah atribut signUrl dan copUrl
+          signUrl: finalSignIndex !== -1 ? safeGet(finalSignIndex) : '',
+          copUrl: finalCopIndex !== -1 ? safeGet(finalCopIndex) : ''
         };
 
         Logger.log(`[V6.5.0] Pengguna dijumpai: ${user.name} (${user.email}) - Role: ${user.role}`);
@@ -1632,6 +1640,9 @@ function getUsersData() {
   const roleColIndex = headers.findIndex(h => h && h.toString().toUpperCase().includes('ROLE'));
   const colorColIndex = headers.findIndex(h => h && (h.toString().toUpperCase().includes('WARNA') || h.toString().toUpperCase().includes('COLOR')));
   const phoneColIndex = headers.findIndex(h => h && (h.toString().toUpperCase().includes('TELEFON') || h.toString().toUpperCase().includes('PHONE') || h.toString().toUpperCase().includes('NO TEL')));
+  // V6.5.1: Cari indeks untuk Tandatangan dan Cop
+  const signColIndex = headers.findIndex(h => h && (h.toString().toUpperCase().includes('TANDATANGAN') || h.toString().toUpperCase().includes('SIGN')));
+  const copColIndex = headers.findIndex(h => h && (h.toString().toUpperCase().includes('COP') || h.toString().toUpperCase().includes('STAMP')));
   
   const finalNameIndex = nameColIndex !== -1 ? nameColIndex : 0;
   const finalEmailIndex = emailColIndex !== -1 ? emailColIndex : 1;
@@ -1639,10 +1650,22 @@ function getUsersData() {
   const finalColorIndex = colorColIndex !== -1 ? colorColIndex : 3;
   const finalPhoneIndex = phoneColIndex !== -1 ? phoneColIndex : 5;
   const finalImageIndex = 6;
+  const finalSignIndex = signColIndex !== -1 ? signColIndex : -1;
+  const finalCopIndex = copColIndex !== -1 ? copColIndex : -1;
 
   const users = data.map(row => {
     const safeGet = (index, defaultValue = '') => { return row && row[index] !== undefined && row[index] !== null ? String(row[index]).trim() : defaultValue; };
-    return { name: safeGet(finalNameIndex), email: safeGet(finalEmailIndex), role: safeGet(finalRoleIndex).toUpperCase(), color: safeGet(finalColorIndex), phone: safeGet(finalPhoneIndex), imageUrl: safeGet(finalImageIndex) };
+    return { 
+      name: safeGet(finalNameIndex), 
+      email: safeGet(finalEmailIndex), 
+      role: safeGet(finalRoleIndex).toUpperCase(), 
+      color: safeGet(finalColorIndex), 
+      phone: safeGet(finalPhoneIndex), 
+      imageUrl: safeGet(finalImageIndex),
+      // V6.5.1: Tambah atribut signUrl dan copUrl
+      signUrl: finalSignIndex !== -1 ? safeGet(finalSignIndex) : '',
+      copUrl: finalCopIndex !== -1 ? safeGet(finalCopIndex) : ''
+    };
   }).filter(user => user.name !== "");
   return createJSONOutput(users);
 }

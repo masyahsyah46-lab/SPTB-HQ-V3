@@ -39,7 +39,7 @@ document.addEventListener('DOMContentLoaded', () => {
   let bakulUnsubscribe = null;
 
   // URL APPSCRIPT
-  const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbybztmMhMUJLWnuzBTwbFpTckquoz_55b7fdBLlmeHCSdy4-9LgITy8l5kxGOxTvknj/exec';
+  const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbz-hF-IES6tk97L_QYFX8HNrpiUUYwaRcbln8vjLr0zsCuXlfyymAypAYOtmmFg74I3/exec';
   
   // Google Client ID
   const GOOGLE_CLIENT_ID = '758579492428-rnfev1nkkf2e6qduhujgtfbhudl2j9td.apps.googleusercontent.com';
@@ -5520,6 +5520,83 @@ Sila semak sistem STB untuk tindakan selanjutnya.`;
     }
 
     tbody.innerHTML = rowsHtml;
+
+    // =========================================================================
+    // KOD BARU: AUTO-INJECT TANDATANGAN & COP PENGESYOR DAN PELULUS
+    // =========================================================================
+    
+    // Dapatkan nama pegawai
+    const namaPengesyor = val('db_pengesyor') || val('pengesyor') || (currentUser && currentUser.role === 'PENGESYOR' ? currentUser.name : '');
+    // Untuk Pelulus, ambil dari pelulusActiveItem jika sedang diproses
+    const namaPelulus = document.getElementById('pelulus_nama')?.value || (typeof pelulusActiveItem !== 'undefined' && pelulusActiveItem ? pelulusActiveItem.pelulus : '');
+    const keputusanPelulus = document.getElementById('pelulus_keputusan')?.value || (typeof pelulusActiveItem !== 'undefined' && pelulusActiveItem ? pelulusActiveItem.kelulusan : '');
+
+    // Dapatkan elemen gambar
+    const imgSignPengesyor = document.getElementById('print_pengesyor_sign');
+    const imgCopPengesyor = document.getElementById('print_pengesyor_cop');
+    const imgSignPelulus = document.getElementById('print_pelulus_sign');
+    const imgCopPelulus = document.getElementById('print_pelulus_cop');
+    
+    // Reset paparan gambar
+    [imgSignPengesyor, imgCopPengesyor, imgSignPelulus, imgCopPelulus].forEach(img => { if(img) img.style.display = 'none'; });
+
+    // Cari URL gambar di dalam usersList yang telah di-cache
+    if (typeof usersList !== 'undefined' && usersList.length > 0) {
+        
+        // 1. Masukkan Sign Pengesyor
+        if (namaPengesyor) {
+            const userPengesyor = usersList.find(u => u.name.toUpperCase() === namaPengesyor.toUpperCase());
+            if (userPengesyor) {
+                if (userPengesyor.signUrl && imgSignPengesyor) { 
+                    imgSignPengesyor.src = userPengesyor.signUrl; 
+                    imgSignPengesyor.style.display = 'block'; 
+                }
+                if (userPengesyor.copUrl && imgCopPengesyor) { 
+                    imgCopPengesyor.src = userPengesyor.copUrl; 
+                    imgCopPengesyor.style.display = 'block'; 
+                }
+            }
+        }
+
+        // 2. Masukkan Sign Pelulus (Jika ada keputusan)
+        if (keputusanPelulus && keputusanPelulus.trim() !== '') {
+            const userPelulus = usersList.find(u => u.name.toUpperCase() === namaPelulus.toUpperCase());
+            if (userPelulus) {
+                if (userPelulus.signUrl && imgSignPelulus) { 
+                    imgSignPelulus.src = userPelulus.signUrl; 
+                    imgSignPelulus.style.display = 'block'; 
+                }
+                if (userPelulus.copUrl && imgCopPelulus) { 
+                    imgCopPelulus.src = userPelulus.copUrl; 
+                    imgCopPelulus.style.display = 'block'; 
+                }
+                
+                // Masukkan Maklumat Tarikh & Catatan Pelulus
+                const tLulus = pelulusActiveItem ? pelulusActiveItem.tarikh_lulus : new Date().toISOString().split('T')[0];
+                const catatan = document.getElementById('pelulus_alasan')?.value || (pelulusActiveItem ? pelulusActiveItem.alasan : '');
+                
+                setTxt('print_tarikh_lulus', tLulus ? formatDateDisplay(tLulus) : '________________');
+                setTxt('print_catatan_pelulus', catatan);
+                
+                // Highlight Keputusan Pelulus di PDF
+                const elLulus = document.getElementById('print_lulus');
+                const elLulusSyarat = document.getElementById('print_lulus_syarat');
+                const elPemutihan = document.getElementById('print_pemutihan');
+                const elTolak = document.getElementById('print_tolak');
+                
+                [elLulus, elLulusSyarat, elPemutihan, elTolak].forEach(el => { 
+                    if(el) {
+                        el.setAttribute('class', 'syor-dimmed'); 
+                    }
+                });
+                
+                if (keputusanPelulus === 'LULUS' && elLulus) elLulus.setAttribute('class', 'syor-selected');
+                else if (keputusanPelulus === 'LULUS BERSYARAT' && elLulusSyarat) elLulusSyarat.setAttribute('class', 'syor-selected');
+                else if (keputusanPelulus === 'PEMUTIHAN' && elPemutihan) elPemutihan.setAttribute('class', 'syor-selected');
+                else if (keputusanPelulus.includes('TOLAK') && elTolak) elTolak.setAttribute('class', 'syor-selected');
+            }
+        }
+    }
   }
 
   function setupAutoSaveListeners() {
