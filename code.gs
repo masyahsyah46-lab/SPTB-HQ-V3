@@ -1158,7 +1158,74 @@ Sila ambil tindakan sewajarnya.
 }
 
 /**
+ * FUNGSI BAHARU: Menukar semua imej luaran dalam HTML kepada Base64
+ * V6.5.2: Fungsi ini memastikan semua imej (termasuk cop/sign) tertanam terus dalam HTML
+ *          sebelum ditukar ke PDF untuk mengelakkan imej kosong di Google Drive
+ */
+function embedAllImagesAsBase64(htmlContent) {
+  try {
+    // Regex untuk mencari semua tag <img> dan mengekstrak atribut src
+    const imgRegex = /<img[^>]+src=["']([^"']+)["'][^>]*>/gi;
+    let match;
+    let updatedHtml = htmlContent;
+    let replacementCount = 0;
+    
+    // Cari semua padanan
+    while ((match = imgRegex.exec(htmlContent)) !== null) {
+      const fullTag = match[0];
+      const imgUrl = match[1];
+      
+      // Langkau jika sudah Base64 atau bukan URL HTTP/HTTPS
+      if (imgUrl.startsWith('data:') || !imgUrl.match(/^https?:\/\//i)) {
+        continue;
+      }
+      
+      try {
+        Logger.log(`[V6.5.2] Memuat turun imej: ${imgUrl.substring(0, 100)}...`);
+        
+        // Muat turun imej menggunakan UrlFetchApp
+        const response = UrlFetchApp.fetch(imgUrl, { 
+          muteHttpExceptions: true,
+          validateHttpsCertificates: false
+        });
+        
+        const responseCode = response.getResponseCode();
+        
+        if (responseCode === 200) {
+          const imageBlob = response.getBlob();
+          const contentType = imageBlob.getContentType() || 'image/png';
+          const base64Data = Utilities.base64Encode(imageBlob.getBytes());
+          const base64Src = `data:${contentType};base64,${base64Data}`;
+          
+          // Gantikan URL asal dengan Base64 dalam tag img
+          const updatedTag = fullTag.replace(imgUrl, base64Src);
+          updatedHtml = updatedHtml.replace(fullTag, updatedTag);
+          
+          replacementCount++;
+          Logger.log(`[V6.5.2] Berjaya menukar imej ke Base64: ${contentType} (${base64Data.length} bytes base64)`);
+        } else {
+          Logger.log(`[V6.5.2] Gagal memuat turun imej (HTTP ${responseCode}): ${imgUrl.substring(0, 100)}...`);
+        }
+        
+      } catch (fetchError) {
+        Logger.log(`[V6.5.2] Ralat memuat turun imej ${imgUrl.substring(0, 100)}...: ${fetchError.toString()}`);
+        // Teruskan dengan imej seterusnya walaupun satu gagal
+      }
+    }
+    
+    Logger.log(`[V6.5.2] Selesai menukar imej: ${replacementCount} imej berjaya ditukar ke Base64.`);
+    return updatedHtml;
+    
+  } catch (error) {
+    Logger.log(`[V6.5.2] Ralat dalam embedAllImagesAsBase64: ${error.toString()}`);
+    // Jika berlaku ralat, kembalikan HTML asal supaya proses tidak gagal sepenuhnya
+    return htmlContent;
+  }
+}
+
+/**
  * FUNGSI BAHARU: Mengendalikan cetakan HTML ke PDF dan simpan ke Drive
+ * V6.5.2: Ditambah proses embedAllImagesAsBase64 sebelum penjanaan PDF
  */
 function handleCetakDanSimpanPDF(data) {
   try {
@@ -1188,6 +1255,10 @@ function handleCetakDanSimpanPDF(data) {
     if (!typeFolder) typeFolder = companyFolder.createFolder(appType.toUpperCase());
     
     const themeColor = data.user_color && data.user_color.trim() !== "" ? data.user_color : "#1a73e8";
+    
+    // V6.5.2: Tukar semua imej luaran kepada Base64 SEBELUM membina HTML penuh
+    Logger.log(`[V6.5.2] Memproses imej dalam HTML untuk ${data.company_name}...`);
+    const embeddedHtmlContent = embedAllImagesAsBase64(data.htmlContent);
     
     const validHtmlContent = `
 <!DOCTYPE html>
@@ -1229,7 +1300,7 @@ function handleCetakDanSimpanPDF(data) {
 <body>
   <div class="print-container">
     <div class="print-header-strip"></div>
-    ${data.htmlContent}
+    ${embeddedHtmlContent}
     <div class="footer">
       <p>Dokumen ini telah disahkan dan dicetak pada ${new Date().toLocaleString('ms-MY')}</p>
     </div>
@@ -1247,7 +1318,7 @@ function handleCetakDanSimpanPDF(data) {
     logActivity(
       data.user_name, 
       'CETAK_PDF', 
-      `PDF Borang Semakan disimpan untuk ${data.company_name} (Warna: ${themeColor})`, 
+      `PDF Borang Semakan disimpan untuk ${data.company_name} (Warna: ${themeColor}) - Imej Base64`, 
       typeFolder.getId()
     );
 
@@ -1259,7 +1330,7 @@ function handleCetakDanSimpanPDF(data) {
       file_id: pdfFile.getId(),
       file_name: fileName,
       folder_path: `${MAIN_FOLDER_NAME} > ${data.user_name} > ${data.company_name} > ${appType}`,
-      message: "PDF berjaya disimpan dan folder disiapkan"
+      message: "PDF berjaya disimpan dengan imej tertanam dan folder disiapkan"
     });
 
   } catch (error) {
@@ -2071,6 +2142,26 @@ function testDoPostCheckAuth() {
 function testSearchYoutube() {
   const result = handleSearchYoutube("tutorial google apps script");
   console.log(result.getContent());
+  return result;
+}
+
+// =========================================================================
+// V6.5.2: FUNGSI UJI embedAllImagesAsBase64
+// =========================================================================
+function testEmbedAllImagesAsBase64() {
+  const testHtml = `
+    <div>
+      <img src="https://www.google.com/images/branding/googlelogo/1x/googlelogo_color_272x92dp.png" />
+      <p>Ini adalah ujian</p>
+      <img src="data:image/png;base64,ABC123=" />
+      <img src="https://via.placeholder.com/150" />
+    </div>
+  `;
+  
+  const result = embedAllImagesAsBase64(testHtml);
+  console.log("Original HTML length:", testHtml.length);
+  console.log("Result HTML length:", result.length);
+  console.log("Contains base64:", result.includes('data:image/') ? 'YES' : 'NO');
   return result;
 }
 
