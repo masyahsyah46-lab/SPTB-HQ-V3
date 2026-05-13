@@ -10860,7 +10860,7 @@ Sila semak sistem STB untuk tindakan selanjutnya.`;
               const el = document.getElementById(key);
               if (el) {
                   if (el.type === 'checkbox' || el.type === 'radio') el.checked = parsedData[key];
-                  else el.value = parsedData[key];
+                  else if (el.type !== 'file') el.value = parsedData[key]; // Abaikan input fail
               }
           });
           if (parsedData.jenisApp) {
@@ -10976,7 +10976,7 @@ Sila semak sistem STB untuk tindakan selanjutnya.`;
               const el = document.getElementById(key);
               if (el) {
                   if (el.type === 'checkbox' || el.type === 'radio') el.checked = parsedData[key];
-                  else el.value = parsedData[key];
+                  else if (el.type !== 'file') el.value = parsedData[key]; // Abaikan input fail
               }
           });
           if (parsedData.jenisApp) {
