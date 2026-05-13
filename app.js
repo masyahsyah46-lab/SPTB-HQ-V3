@@ -11163,6 +11163,7 @@ Sila semak sistem STB untuk tindakan selanjutnya.`;
                   justify-content: space-between !important;
                   align-items: flex-end !important;
                   margin-top: 15px !important;
+                  padding-bottom: 10px !important; /* Beri ruang supaya tak langgar garisan bawah */
                 }
                 .pengesyor-dates {
                   flex: 1 !important;
@@ -11170,7 +11171,7 @@ Sila semak sistem STB untuk tindakan selanjutnya.`;
                 }
                 .pengesyor-sign-box {
                   width: 50% !important;
-                  height: 120px !important;
+                  height: 110px !important; /* Besarkan sikit ruang kotak untuk elak imej terkeluar */
                   position: relative !important;
                   display: flex !important;
                   justify-content: center !important;
@@ -11185,16 +11186,24 @@ Sila semak sistem STB untuk tindakan selanjutnya.`;
                   margin-top: 10px !important;
                 }
                 
-                /* Pastikan cop dan sign tidak melanggar teks */
+                /* GARISAN PEMISAH */
+                .verification-separator {
+                  margin: 25px 0 15px 0 !important; /* Tolak garisan ke bawah jauh sikit dari cop pengesyor */
+                  border-bottom: 1px solid #000 !important;
+                }
+                
+                /* KAWALAN SAIZ & KEDUDUKAN COP / SIGN */
                 #print_pengesyor_sign, #print_pelulus_sign {
-                  bottom: 25px !important; 
+                  bottom: 35px !important; /* Naikkan sign supaya berada di atas nama cop */
                   position: absolute !important;
-                  height: 60px !important;
+                  height: 45px !important; /* Kecilkan saiz sign */
+                  z-index: 2 !important; /* Pastikan sign berada di lapisan paling atas */
                 }
                 #print_pengesyor_cop, #print_pelulus_cop {
                   bottom: 0px !important; 
                   position: absolute !important;
-                  height: 90px !important;
+                  height: 85px !important; /* Kekalkan saiz cop */
+                  z-index: 1 !important; /* Cop berada di belakang sign */
                 }
 
                 @media print {
@@ -11207,7 +11216,6 @@ Sila semak sistem STB untuk tindakan selanjutnya.`;
             </html>
           `);
           newWin.document.close();
-
       } catch(e) {
           console.error(e);
           CustomAppModal.alert("Gagal memaparkan borang: " + e.message, "Ralat", "error"); 
