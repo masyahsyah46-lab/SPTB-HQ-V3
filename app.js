@@ -8717,17 +8717,20 @@ Sila semak sistem STB untuk tindakan selanjutnya.`;
         </div>` : ''}
         
         ${(i.borang_json && i.borang_json.trim() !== '') ? 
-            `<div style="margin-top: 15px;">
-                <button class="btn btn-blue" style="width: 100%; box-shadow: 0 4px 6px rgba(0,0,0,0.1);" onclick="window.handlePreviewBorangPelulus()">📄 Lihat Borang Semakan</button>
-            </div>` 
+            `<div style="margin-top: 15px;"><button id="btnLihatBorangSemakan" class="btn btn-blue" style="width: 100%; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">📄 Lihat Borang Semakan</button></div>` 
         : ''}
       </div>
     `;
 
-    // Gantikan setTimeout lama dengan fungsi global ini
-    window.handlePreviewBorangPelulus = () => {
-        processLihatBorangPreview(i);
-    };
+    // Bind event selepas innerHTML di-set
+    setTimeout(() => {
+        const btnLihat = document.getElementById('btnLihatBorangSemakan');
+        if (btnLihat) {
+            btnLihat.addEventListener('click', () => {
+                processLihatBorangPreview(i);
+            });
+        }
+    }, 100);
 
     const btnToApproval = document.getElementById('btnToApproval');
     const btnViewBack = document.getElementById('btnViewBack');
