@@ -9045,26 +9045,26 @@ Sila semak sistem STB untuk tindakan selanjutnya.`;
   }
 
   async function resetFormAfterSubmit() {
-    const fieldsToClear = [
-      'db_syarikat', 'borang_syarikat', 'borang_cidb', 'db_row_index',
-      'db_cidb', 'db_gred', 'db_jenis', 'db_negeri', 'db_tarikh_surat',
-      'db_start_date', 'db_tatatertib', 'db_syor', 'db_submit_date',
-      'db_pautan', 'db_justifikasi', 'db_syor_status', 'db_tarikh_syor',
-      'borang_gred', 'borang_tarikh_mohon', 'borang_tatatertib', 'borang_justifikasi',
-      'spkkDuration', 'stbDuration', 'ssm_date_input', 'ssm_status',
-      'bank_date_input', 'bank_sign_input', 'bank_status_input',
-      'doc_carta_status', 'doc_peta_status', 'doc_gambar_status', 'doc_sewa_status',
-      'kwsp_date_1', 'kwsp_s1', 'kwsp_date_2', 'kwsp_s2', 'kwsp_date_3', 'kwsp_s3',
-      'input_ubah_maklumat', 'input_ubah_gred',
-      'db_lawatan_tarikh', 'db_lawatan_submit_sptb', 'db_lawatan_syor',
-      'db_status_hantar_spi',
-      'borang_no_telefon',
-      'db_alamat_perniagaan', 'db_perubahan_input'
-    ];
-
-    fieldsToClear.forEach(id => {
-      const el = document.getElementById(id);
-      if (el) el.value = '';
+    // 1. Kosongkan semua form di tab borang semakan dan input database
+    const tabsToClear = ['tab-checker', 'tab-database'];
+    tabsToClear.forEach(tabId => {
+        const tab = document.getElementById(tabId);
+        if (tab) {
+            tab.querySelectorAll('input, select, textarea').forEach(el => {
+                if (el.id !== 'db_pengesyor' && el.id !== 'pelulus_nama' && !el.id.startsWith('login')) {
+                    if(el.type === 'checkbox' || el.type === 'radio') {
+                        el.checked = false;
+                    } else if (el.type !== 'file') {
+                        el.value = '';
+                    }
+                    // Reset inline styles for status inputs (✓/✗)
+                    if (el.classList.contains('status-input')) {
+                        el.style.backgroundColor = '#eff6ff';
+                        el.style.color = '#1e40af';
+                    }
+                }
+            });
+        }
     });
     
     const statusDisp = document.getElementById('db_status_hantar_display');
@@ -9138,9 +9138,12 @@ Sila semak sistem STB untuk tindakan selanjutnya.`;
       'stb_database_persistence'
     ]);
 
-    console.log("V6.5.2 Borang telah direset selepas hantar data.");
+    console.log("V6.5.2 Borang telah direset sepenuhnya selepas hantar data.");
 
     updateValidationCheckboxDisplay();
+    if (typeof applyDynamicFormColors === 'function') {
+        applyDynamicFormColors();
+    }
   }
 
   const btnPelulusSubmit = document.getElementById('btnPelulusSubmit');
