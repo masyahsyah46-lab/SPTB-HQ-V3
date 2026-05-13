@@ -11144,22 +11144,56 @@ Sila semak sistem STB untuk tindakan selanjutnya.`;
               <style>
                 ${pdfCss} 
                 body { 
-                  background: #525659 !important; /* Warna latar kelabu gelap seperti PDF viewer */
-                  padding: 20px; 
+                  background: #525659 !important; 
+                  padding: 40px 0; 
+                  margin: 0;
                   display: flex; 
                   justify-content: center;
+                  align-items: flex-start;
+                  min-height: 100vh;
                 }
                 .print-only-container {
-                  width: 210mm !important; /* Paksa saiz lebar Kertas A4 */
-                  min-height: 297mm;
-                  background: white;
-                  padding: 15mm;
-                  box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+                  width: 210mm !important; 
+                  min-height: 297mm !important;
+                  height: auto !important; 
+                  background: white !important;
+                  padding: 15mm !important;
+                  box-shadow: 0 10px 30px rgba(0,0,0,0.5);
                   box-sizing: border-box;
+                  display: block !important;
+                  position: relative;
+                  margin-bottom: 40px;
                 }
+                
+                /* ========================================================
+                   KOD OVERRIDE KHAS UNTUK TAB PREVIEW SAHAJA
+                   Ia akan menimpa (override) tetapan asal tanpa 
+                   merosakkan butang Cetak di halaman utama.
+                   ======================================================== */
+                .verification-box {
+                  height: auto !important; 
+                  min-height: 160px !important; 
+                  padding-top: 10px !important;
+                }
+                .pengesyor-grid-new, .verification-box > div:last-child {
+                  align-items: flex-end !important;
+                }
+                .pengesyor-sign-box, .verification-box > div:last-child > div:last-child {
+                  height: 100px !important;
+                }
+                #print_pengesyor_sign, #print_pelulus_sign {
+                  bottom: 10px !important; 
+                  height: 60px !important;
+                }
+                #print_pengesyor_cop, #print_pelulus_cop {
+                  bottom: -5px !important; 
+                  height: 85px !important;
+                }
+                /* ======================================================== */
+
                 @media print {
                   body { background: white !important; padding: 0; display: block; }
-                  .print-only-container { width: 100% !important; box-shadow: none; padding: 0; }
+                  .print-only-container { width: 100% !important; box-shadow: none; padding: 0; margin: 0; }
                 }
               </style>
             </head>
