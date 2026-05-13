@@ -7049,6 +7049,13 @@ Sila semak sistem STB untuk tindakan selanjutnya.`;
       return;
     }
 
+    // --- KOD BARU: MULA PAPARKAN LOADING ANIMATION DI SINI ---
+    simulateLoadingWithSteps(
+      ['Menghubungi Google Drive...', 'Mencipta Folder Syarikat...', 'Menyusun Sub-folder...', 'Menjana Pautan Kongsi...'],
+      'Mencipta Folder Drive'
+    );
+    // ---------------------------------------------------------
+
     if (driveStatus) {
       driveStatus.style.display = 'inline-block';
       driveStatus.className = 'drive-status drive-creating';
@@ -7086,7 +7093,7 @@ Sila semak sistem STB untuk tindakan selanjutnya.`;
       application_type: subfolderName,
       user_name: userName,
       main_folder_id: mainFolderId,
-      email: currentUser ? currentUser.email : '' // <-- TAMBAH INI
+      email: currentUser ? currentUser.email : ''
     };
 
     try {
@@ -7101,6 +7108,9 @@ Sila semak sistem STB untuk tindakan selanjutnya.`;
       }
 
       const result = await response.json();
+      
+      // --- KOD BARU: TUTUP LOADING JIKA BERJAYA ---
+      hideLoading();
       
       if (result.success) {
         await playSuccessSound();
@@ -7140,6 +7150,9 @@ Sila semak sistem STB untuk tindakan selanjutnya.`;
       
     } catch (error) {
       console.error("V6.5.2 Error creating drive folder:", error);
+      
+      // --- KOD BARU: TUTUP LOADING JIKA RALAT ---
+      hideLoading();
       
       await playErrorSound();
       
@@ -8704,20 +8717,17 @@ Sila semak sistem STB untuk tindakan selanjutnya.`;
         </div>` : ''}
         
         ${(i.borang_json && i.borang_json.trim() !== '') ? 
-            `<div style="margin-top: 15px;"><button id="btnLihatBorangSemakan" class="btn btn-blue" style="width: 100%; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">📄 Lihat Borang Semakan</button></div>` 
+            `<div style="margin-top: 15px;">
+                <button class="btn btn-blue" style="width: 100%; box-shadow: 0 4px 6px rgba(0,0,0,0.1);" onclick="window.handlePreviewBorangPelulus()">📄 Lihat Borang Semakan</button>
+            </div>` 
         : ''}
       </div>
     `;
 
-    // Bind event selepas innerHTML di-set
-    setTimeout(() => {
-        const btnLihat = document.getElementById('btnLihatBorangSemakan');
-        if (btnLihat) {
-            btnLihat.addEventListener('click', () => {
-                processLihatBorangPreview(i);
-            });
-        }
-    }, 100);
+    // Gantikan setTimeout lama dengan fungsi global ini
+    window.handlePreviewBorangPelulus = () => {
+        processLihatBorangPreview(i);
+    };
 
     const btnToApproval = document.getElementById('btnToApproval');
     const btnViewBack = document.getElementById('btnViewBack');
@@ -10976,7 +10986,8 @@ Sila semak sistem STB untuk tindakan selanjutnya.`;
               const el = document.getElementById(key);
               if (el) {
                   if (el.type === 'checkbox' || el.type === 'radio') el.checked = parsedData[key];
-                  else if (el.type !== 'file') el.value = parsedData[key]; // Abaikan input fail
+                  // TAMBAH SYARAT 'file' DI SINI
+                  else if (el.type !== 'file') el.value = parsedData[key];
               }
           });
           if (parsedData.jenisApp) {
