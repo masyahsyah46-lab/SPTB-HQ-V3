@@ -5339,7 +5339,7 @@ Sila semak sistem STB untuk tindakan selanjutnya.`;
           user_name: userName,
           user_color: userColorHex,
           main_folder_id: mainFolderId,
-          htmlContent: printHTML,
+          htmlContent: printHTMLForDrive,
           email: currentUser ? currentUser.email : ''
         };
         
