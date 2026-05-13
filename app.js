@@ -5267,7 +5267,21 @@ Sila semak sistem STB untuk tindakan selanjutnya.`;
         
         const userColorHex = getUserColorHex(currentUser.color);
         const pdfCss = generatePdfCssString(userColorHex);
-        const printHTML = `<style>${pdfCss}</style>${printLayoutElement.outerHTML}`;
+        // Simpan status asal display untuk dikembalikan semula nanti
+        const imgEls = [
+            document.getElementById('print_pengesyor_sign'), document.getElementById('print_pengesyor_cop'),
+            document.getElementById('print_pelulus_sign'), document.getElementById('print_pelulus_cop')
+        ];
+        const originalDisplays = imgEls.map(el => el ? el.style.display : 'none');
+
+        // Sembunyikan gambar khusus untuk capture HTML ke Drive
+        imgEls.forEach(el => { if(el) el.style.display = 'none'; });
+        const printHTMLForDrive = `<style>${pdfCss}</style>${printLayoutElement.outerHTML}`;
+
+        // Tunjukkan semula gambar untuk cetakan browser (window.print)
+        imgEls.forEach((el, idx) => { if(el) el.style.display = originalDisplays[idx]; });
+        
+        // Gunakan printHTMLForDrive dalam payload ke backend
         
         if (loadingOverlay) {
           loadingOverlay.style.display = 'flex';
@@ -5546,8 +5560,8 @@ Sila semak sistem STB untuk tindakan selanjutnya.`;
 
     if (typeof usersList !== 'undefined' && usersList.length > 0) {
         
-        // 1. Masukkan Sign Pengesyor
-        if (namaPengesyor) {
+        // Sign/Cop hanya muncul jika syorPilihan (SOKONG/SIASAT/TIDAK DISOKONG) sudah dipilih
+        if (namaPengesyor && syorPilihan) { 
             const userPengesyor = usersList.find(u => u.name.toUpperCase() === namaPengesyor.toUpperCase());
             if (userPengesyor) {
                 if (userPengesyor.signUrl && userPengesyor.signUrl.trim() !== '') { 
