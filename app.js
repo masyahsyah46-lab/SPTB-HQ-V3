@@ -5590,7 +5590,17 @@ Sila semak sistem STB untuk tindakan selanjutnya.`;
                 
                 // Masukkan Maklumat Tarikh & Catatan Pelulus
                 const tLulus = pelulusActiveItem ? pelulusActiveItem.tarikh_lulus : new Date().toISOString().split('T')[0];
-                const catatan = document.getElementById('pelulus_alasan')?.value || (pelulusActiveItem ? pelulusActiveItem.alasan : '');
+                
+                let catatan = '';
+                if (pelulusActiveItem && pelulusActiveItem.borang_json) {
+                    try { 
+                        const parsed = JSON.parse(pelulusActiveItem.borang_json);
+                        if (parsed.catatan_pelulus) catatan = parsed.catatan_pelulus;
+                    } catch(e){}
+                }
+                if (!catatan) {
+                    catatan = document.getElementById('pelulus_catatan')?.value || document.getElementById('pelulus_alasan')?.value || (pelulusActiveItem ? pelulusActiveItem.alasan : '');
+                }
                 
                 setTxt('print_tarikh_lulus', tLulus ? formatDateDisplay(tLulus) : '________________');
                 setTxt('print_catatan_pelulus', catatan);
@@ -7195,7 +7205,8 @@ Sila semak sistem STB untuk tindakan selanjutnya.`;
     const state = {
       activeItem: pelulusActiveItem,
       keputusan: document.getElementById('pelulus_keputusan')?.value || '',
-      alasan: document.getElementById('pelulus_alasan')?.value || ''
+      alasan: document.getElementById('pelulus_alasan')?.value || '',
+      catatan: document.getElementById('pelulus_catatan')?.value || ''
     };
     storageWrapper.set({ 'stb_pelulus_state': state });
   }
@@ -7211,6 +7222,9 @@ Sila semak sistem STB untuk tindakan selanjutnya.`;
         
         const alasanEl = document.getElementById('pelulus_alasan');
         if (alasanEl) alasanEl.value = state.alasan || '';
+        
+        const catatanEl = document.getElementById('pelulus_catatan');
+        if (catatanEl) catatanEl.value = state.catatan || '';
         
         const evt = new Event('change');
         elKeputusan.dispatchEvent(evt);
@@ -7246,7 +7260,7 @@ Sila semak sistem STB untuk tindakan selanjutnya.`;
     });
   }
 
-  ['pelulus_keputusan', 'pelulus_alasan'].forEach(id => {
+  ['pelulus_keputusan', 'pelulus_alasan', 'pelulus_catatan'].forEach(id => {
     const el = document.getElementById(id);
     if(el) {
       el.addEventListener('input', savePelulusState);
@@ -8205,6 +8219,15 @@ Sila semak sistem STB untuk tindakan selanjutnya.`;
         btn.onclick = function() { viewRecordOnly(item); }; 
         btnContainer.appendChild(btn);
         
+        if (item.borang_json && item.borang_json.trim() !== '') {
+            const btnPrint = document.createElement('button');
+            btnPrint.className = 'btn-sm';
+            btnPrint.style.backgroundColor = '#6366f1';
+            btnPrint.innerText = '🖨️ Cetak';
+            btnPrint.onclick = function() { processPelulusPrint(item); };
+            btnContainer.appendChild(btnPrint);
+        }
+
         if (currentUser.role === 'PELULUS') {
           const btnUndo = document.createElement('button');
           btnUndo.className = 'btn-sm';
@@ -8679,8 +8702,22 @@ Sila semak sistem STB untuk tindakan selanjutnya.`;
             </div>
           </div>
         </div>` : ''}
+        
+        ${(i.borang_json && i.borang_json.trim() !== '') ? 
+            `<div style="margin-top: 15px;"><button id="btnLihatBorangSemakan" class="btn btn-blue" style="width: 100%; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">📄 Lihat Borang Semakan</button></div>` 
+        : ''}
       </div>
     `;
+
+    // Bind event selepas innerHTML di-set
+    setTimeout(() => {
+        const btnLihat = document.getElementById('btnLihatBorangSemakan');
+        if (btnLihat) {
+            btnLihat.addEventListener('click', () => {
+                processLihatBorangPreview(i);
+            });
+        }
+    }, 100);
 
     const btnToApproval = document.getElementById('btnToApproval');
     const btnViewBack = document.getElementById('btnViewBack');
@@ -9208,6 +9245,14 @@ Sila semak sistem STB untuk tindakan selanjutnya.`;
       }
 
       // 6. Sediakan data untuk dihantar
+      const catatanPelulus = document.getElementById('pelulus_catatan')?.value || '';
+      let borangJsonData = {};
+      if (pelulusActiveItem.borang_json && pelulusActiveItem.borang_json.trim() !== '') {
+          try { borangJsonData = JSON.parse(pelulusActiveItem.borang_json); } catch(e){}
+      }
+      borangJsonData.catatan_pelulus = catatanPelulus;
+      const newBorangJson = JSON.stringify(borangJsonData);
+
       const payload = {
         row: pelulusActiveItem.row || '',
         kelulusan: keputusan,
@@ -9218,16 +9263,12 @@ Sila semak sistem STB untuk tindakan selanjutnya.`;
         justifikasi_baru: justifikasiPelulus,
         date_submit_baru: dateSpiPelulus,
         hantar_emel_spi_pemutihan: confirmSpiPemutihan,
-        email: currentUser ? currentUser.email : '' // <-- TAMBAH INI
+        borang_json: newBorangJson, // Set ruangan catatan pelulus
+        email: currentUser ? currentUser.email : '' 
       };
       
       // 7. Hantar data ke pelayan (server)
       submitData(payload, "Keputusan berjaya dihantar!", async (result) => {
-        await playSuccessSound();
-        
-        // Pop-up animasi menandakan kejayaan
-        await CustomAppModal.alert("Keputusan pelulus BERJAYA direkodkan.", "Selesai", "success");
-        
         if (result.status === 'success') {
           await playSuccessSound();
         }
@@ -9240,15 +9281,33 @@ Sila semak sistem STB untuk tindakan selanjutnya.`;
             cachedData[index].alasan = payload.alasan;
             cachedData[index].tarikh_lulus = payload.tarikh_lulus;
             cachedData[index].pelulus = payload.pelulus;
+            cachedData[index].borang_json = payload.borang_json;
           }
         }
         
         // Buang cache sesi pelulus dari localStorage
-        await storageWrapper.remove([
-          'stb_pelulus_state', 
-          'stb_drive_folder_url', 
-          'stb_user_folder_url'
-        ]);
+        await storageWrapper.remove(['stb_pelulus_state', 'stb_drive_folder_url', 'stb_user_folder_url']);
+        
+        // Jika borang JSON ada, pelulus boleh terus cetak dengan animasi Modal!
+        if (pelulusActiveItem.borang_json && pelulusActiveItem.borang_json.trim() !== '') {
+            const isCetak = await CustomAppModal.confirm(
+                "Keputusan pelulus BERJAYA direkodkan. Adakah anda mahu mencetak Borang Semakan sekarang?",
+                "Cetak Borang",
+                "info",
+                "Ya, Cetak",
+                false
+            );
+            if (isCetak) {
+                pelulusActiveItem.kelulusan = payload.kelulusan;
+                pelulusActiveItem.alasan = payload.alasan;
+                pelulusActiveItem.tarikh_lulus = payload.tarikh_lulus;
+                pelulusActiveItem.pelulus = payload.pelulus;
+                pelulusActiveItem.borang_json = payload.borang_json;
+                await processPelulusPrint(pelulusActiveItem);
+            }
+        } else {
+            await CustomAppModal.alert("Keputusan pelulus BERJAYA direkodkan.", "Selesai", "success");
+        }
         
         // Kembali ke tab inbox
         switchTab('inbox');
@@ -10786,6 +10845,174 @@ Sila semak sistem STB untuk tindakan selanjutnya.`;
           }
       } catch (error) {
           console.warn("Gagal memuatkan cache individu:", error);
+      }
+  }
+  // =========================================================================
+  // FUNGSI CETAK / PAPAR BORANG SEMAKAN UNTUK PELULUS
+  // =========================================================================
+
+  async function processPelulusPrint(item) {
+      if (!item.borang_json) return;
+      try {
+          const parsedData = JSON.parse(item.borang_json);
+          Object.keys(parsedData).forEach(key => {
+              if (key === 'personnel' || key === 'jenisApp') return;
+              const el = document.getElementById(key);
+              if (el) {
+                  if (el.type === 'checkbox' || el.type === 'radio') el.checked = parsedData[key];
+                  else el.value = parsedData[key];
+              }
+          });
+          if (parsedData.jenisApp) {
+              const radio = document.querySelector(`input[name="jenisApp"][value="${parsedData.jenisApp}"]`);
+              if (radio) radio.checked = true;
+          }
+          const personnelListEl = document.getElementById('personnelList');
+          if (personnelListEl) {
+              personnelListEl.innerHTML = '';
+              if (parsedData.personnel && Array.isArray(parsedData.personnel)) {
+                  parsedData.personnel.forEach(p => addPerson(p));
+              }
+          }
+          
+          const oldActiveItem = pelulusActiveItem;
+          pelulusActiveItem = item;
+          
+          const elKeputusan = document.getElementById('pelulus_keputusan');
+          if(elKeputusan) elKeputusan.value = item.kelulusan || '';
+          const elNama = document.getElementById('pelulus_nama');
+          if(elNama) elNama.value = item.pelulus || '';
+          
+          preparePrintView(); 
+          
+          pelulusActiveItem = oldActiveItem;
+          
+          const isDriveAlreadyCreated = (item.pautan && item.pautan.trim() !== '');
+          let proceedToDrive = false;
+          
+          if (isDriveAlreadyCreated) {
+              const updateDrive = await CustomAppModal.confirm(
+                  "Adakah anda ingin KEMASKINI (simpan semula) fail PDF ini ke dalam Drive, atau sekadar cetakan biasa pada pencetak? (Pilihan Drive tidak menyertakan sign/cop).",
+                  "Cetak & Kemaskini Drive",
+                  "info",
+                  "Ya, Kemaskini Drive"
+              );
+              if (!updateDrive) {
+                  window.print();
+                  return;
+              }
+              proceedToDrive = true;
+          } else {
+              const userConfirmed = await CustomAppModal.confirm(
+                  "Adakah anda pasti ingin mencetak dan menyimpan borang ini ke Google Drive? (Pilihan Drive tidak menyertakan sign/cop).",
+                  "Cetak & Simpan",
+                  "info",
+                  "Ya, Teruskan"
+              );
+              if (!userConfirmed) {
+                  window.print();
+                  return;
+              }
+              proceedToDrive = true;
+          }
+          
+          if (proceedToDrive) {
+              const imgEls = [
+                  document.getElementById('print_pengesyor_sign'), document.getElementById('print_pengesyor_cop'),
+                  document.getElementById('print_pelulus_sign'), document.getElementById('print_pelulus_cop')
+              ];
+              const originalDisplays = imgEls.map(el => el ? el.style.display : 'none');
+              imgEls.forEach(el => { if(el) el.style.display = 'none'; });
+              
+              const printLayoutElement = document.getElementById('printLayout');
+              const userColorHex = getUserColorHex(currentUser.color);
+              const pdfCss = generatePdfCssString(userColorHex);
+              const printHTMLForDrive = `<style>${pdfCss}</style>${printLayoutElement.outerHTML}`;
+              
+              imgEls.forEach((el, idx) => { if(el) el.style.display = originalDisplays[idx]; });
+              
+              const payload = {
+                  action: 'cetak_dan_simpan_pdf',
+                  company_name: item.syarikat,
+                  custom_file_name: `Borang Semakan Keputusan-${item.tarikh_lulus || ''}`,
+                  application_type: `${item.jenis} - ${formatDateDisplay(item.start_date)}`.replace(/\//g, '-'),
+                  month_year: `${new Date().toLocaleString('ms-MY', { month: 'long' }).toUpperCase()} ${new Date().getFullYear()}`,
+                  user_name: item.pengesyor || currentUser.name,
+                  user_color: userColorHex,
+                  main_folder_id: mainFolderId,
+                  htmlContent: printHTMLForDrive,
+                  email: currentUser ? currentUser.email : ''
+              };
+              
+              simulateLoadingWithSteps(['Menjana PDF...', 'Menyimpan ke Google Drive...'], 'Sila Tunggu');
+              
+              const response = await fetchWithRetry(SCRIPT_URL, {
+                  method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify(payload)
+              }, 3, 1000);
+              const result = await response.json();
+              hideLoading();
+              
+              if (result.success) {
+                  await playSuccessSound();
+                  await CustomAppModal.alert("Fail PDF berjaya dikemaskini di Drive!", "Berjaya Disimpan", "success");
+                  window.print();
+              } else {
+                  throw new Error(result.message);
+              }
+          }
+      } catch(e) {
+          hideLoading();
+          console.error(e);
+          await CustomAppModal.alert("Gagal memproses cetakan: " + e.message, "Ralat", "error");
+      }
+  }
+
+  function processLihatBorangPreview(item) {
+      if (!item.borang_json) return;
+      try {
+          const parsedData = JSON.parse(item.borang_json);
+          Object.keys(parsedData).forEach(key => {
+              if (key === 'personnel' || key === 'jenisApp') return;
+              const el = document.getElementById(key);
+              if (el) {
+                  if (el.type === 'checkbox' || el.type === 'radio') el.checked = parsedData[key];
+                  else el.value = parsedData[key];
+              }
+          });
+          if (parsedData.jenisApp) {
+              const radio = document.querySelector(`input[name="jenisApp"][value="${parsedData.jenisApp}"]`);
+              if (radio) radio.checked = true;
+          }
+          const personnelListEl = document.getElementById('personnelList');
+          if (personnelListEl) {
+              personnelListEl.innerHTML = '';
+              if (parsedData.personnel && Array.isArray(parsedData.personnel)) {
+                  parsedData.personnel.forEach(p => addPerson(p));
+              }
+          }
+          
+          const oldActiveItem = pelulusActiveItem;
+          pelulusActiveItem = item;
+          
+          const elKeputusan = document.getElementById('pelulus_keputusan');
+          if(elKeputusan) elKeputusan.value = item.kelulusan || '';
+          const elNama = document.getElementById('pelulus_nama');
+          if(elNama) elNama.value = item.pelulus || '';
+          
+          preparePrintView();
+          
+          pelulusActiveItem = oldActiveItem;
+          
+          const printLayoutElement = document.getElementById('printLayout');
+          const userColorHex = getUserColorHex(currentUser.color);
+          const pdfCss = generatePdfCssString(userColorHex);
+          
+          const newWin = window.open('', '_blank');
+          newWin.document.write(`<html><head><title>Borang Semakan - ${item.syarikat}</title><style>${pdfCss} body { background: #f1f5f9 !important; padding: 20px; }</style></head><body>${printLayoutElement.outerHTML}</body></html>`);
+          newWin.document.close();
+      } catch(e) {
+          console.error(e);
+          alert("Gagal memaparkan borang.");
       }
   }
 
