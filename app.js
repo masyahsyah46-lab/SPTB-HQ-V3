@@ -8728,13 +8728,13 @@ Sila semak sistem STB untuk tindakan selanjutnya.`;
       </div>
     `;
 
-    // Bind event selepas innerHTML di-set
+    // GUNAKAN .onclick AGAR IA HANYA BERLAKU SEKALI SAHAJA (TIDAK DOUBLE)
     setTimeout(() => {
         const btnLihat = document.getElementById('btnLihatBorangSemakan');
         if (btnLihat) {
-            btnLihat.addEventListener('click', () => {
-                processLihatBorangPreview(i);
-            });
+            btnLihat.onclick = function() {
+                processLihatBorangPreview(pelulusActiveItem);
+            };
         }
     }, 100);
 
@@ -11135,10 +11135,39 @@ Sila semak sistem STB untuk tindakan selanjutnya.`;
               else { input.style.backgroundColor = '#eff6ff'; input.style.color = '#1e40af'; }
           });
 
-          // --- 5. BUKA TAB PREVIEW ---
+          // --- 5. BUKA TAB PREVIEW (DENGAN REKAAN KERTAS A4) ---
           const newWin = window.open('', '_blank');
-          newWin.document.write(`<html><head><title>Borang Semakan - ${item.syarikat}</title><style>${pdfCss} body { background: #f1f5f9 !important; padding: 20px; }</style></head><body>${generatedHtml}</body></html>`);
+          newWin.document.write(`
+            <html>
+            <head>
+              <title>Borang Semakan - ${item.syarikat}</title>
+              <style>
+                ${pdfCss} 
+                body { 
+                  background: #525659 !important; /* Warna latar kelabu gelap seperti PDF viewer */
+                  padding: 20px; 
+                  display: flex; 
+                  justify-content: center;
+                }
+                .print-only-container {
+                  width: 210mm !important; /* Paksa saiz lebar Kertas A4 */
+                  min-height: 297mm;
+                  background: white;
+                  padding: 15mm;
+                  box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+                  box-sizing: border-box;
+                }
+                @media print {
+                  body { background: white !important; padding: 0; display: block; }
+                  .print-only-container { width: 100% !important; box-shadow: none; padding: 0; }
+                }
+              </style>
+            </head>
+            <body>${generatedHtml}</body>
+            </html>
+          `);
           newWin.document.close();
+
       } catch(e) {
           console.error(e);
           CustomAppModal.alert("Gagal memaparkan borang: " + e.message, "Ralat", "error"); 
