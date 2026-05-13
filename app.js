@@ -10867,19 +10867,43 @@ Sila semak sistem STB untuk tindakan selanjutnya.`;
       }
   }
   // =========================================================================
-  // FUNGSI CETAK / PAPAR BORANG SEMAKAN UNTUK PELULUS
+  // FUNGSI CETAK / PAPAR BORANG SEMAKAN UNTUK PELULUS & PENGESYOR
   // =========================================================================
 
   async function processPelulusPrint(item) {
       if (!item.borang_json) return;
       try {
           const parsedData = JSON.parse(item.borang_json);
+          
+          // --- 1. BACKUP: SIMPAN KEADAAN BORANG SEMASA ---
+          const backupValues = {};
+          document.querySelectorAll('#tab-checker input, #tab-checker select, #tab-checker textarea, #tab-database input, #tab-database select, #tab-database textarea, #tab-pelulus-action input, #tab-pelulus-action select, #tab-pelulus-action textarea').forEach(el => {
+              if (el.id && el.type !== 'file') {
+                  backupValues[el.id] = (el.type === 'checkbox' || el.type === 'radio') ? el.checked : el.value;
+              }
+          });
+          const backupPersonnelData = [];
+          document.querySelectorAll('.person-card').forEach(card => {
+              const roles = [];
+              card.querySelectorAll('.role-cb:checked').forEach(cb => roles.push(cb.value));
+              backupPersonnelData.push({
+                  name: card.querySelector('.p-name')?.value || '',
+                  isCompany: card.querySelector('.is-company')?.checked || false,
+                  roles: roles,
+                  s_ic: card.querySelector('.status-ic')?.value || '',
+                  s_sb: card.querySelector('.status-sb')?.value || '',
+                  s_epf: card.querySelector('.status-epf')?.value || ''
+              });
+          });
+          const oldActiveItem = pelulusActiveItem;
+
+          // --- 2. INJECT SEMENTARA DATA JSON UNTUK CETAKAN ---
           Object.keys(parsedData).forEach(key => {
               if (key === 'personnel' || key === 'jenisApp') return;
               const el = document.getElementById(key);
-              if (el) {
+              if (el && el.type !== 'file') {
                   if (el.type === 'checkbox' || el.type === 'radio') el.checked = parsedData[key];
-                  else if (el.type !== 'file') el.value = parsedData[key]; // Abaikan input fail
+                  else el.value = parsedData[key];
               }
           });
           if (parsedData.jenisApp) {
@@ -10894,34 +10918,50 @@ Sila semak sistem STB untuk tindakan selanjutnya.`;
               }
           }
           
-          const oldActiveItem = pelulusActiveItem;
           pelulusActiveItem = item;
-          
           const elKeputusan = document.getElementById('pelulus_keputusan');
           if(elKeputusan) elKeputusan.value = item.kelulusan || '';
           const elNama = document.getElementById('pelulus_nama');
           if(elNama) elNama.value = item.pelulus || '';
           
+          // --- 3. JANA REKAAN CETAKAN ---
           preparePrintView(); 
           
+          // --- 4. RESTORE: KEMBALIKAN BORANG KEPADA KEADAAN ASAL ---
           pelulusActiveItem = oldActiveItem;
-          
-          // --- KOD BARU: SEMAK JIKA PELULUS SUDAH PERNAH KEMASKINI KE DRIVE ---
+          Object.keys(backupValues).forEach(id => {
+              const el = document.getElementById(id);
+              if (el && el.type !== 'file') {
+                  if (el.type === 'checkbox' || el.type === 'radio') el.checked = backupValues[id];
+                  else el.value = backupValues[id];
+              }
+          });
+          if (personnelListEl) {
+              personnelListEl.innerHTML = '';
+              if (backupPersonnelData.length > 0) backupPersonnelData.forEach(p => addPerson(p));
+              else addPerson();
+          }
+          // Kembalikan warna tick (jika ada)
+          document.querySelectorAll('.status-input').forEach(input => {
+              if (input.value === '✓') { input.style.backgroundColor = '#dcfce7'; input.style.color = '#166534'; } 
+              else if (input.value === 'X' || input.value === '✗') { input.style.backgroundColor = '#fee2e2'; input.style.color = '#991b1b'; } 
+              else { input.style.backgroundColor = '#eff6ff'; input.style.color = '#1e40af'; }
+          });
+
+          // --- 5. LOGIK PEMPROSESAN DRIVE & CETAKAN ---
           const hasUpdatedDrive = parsedData.pelulus_drive_updated === true;
-          
           const isDriveAlreadyCreated = (item.pautan && item.pautan.trim() !== '');
           let proceedToDrive = false;
           
           if (hasUpdatedDrive) {
-              // Jika sudah kemaskini sebelum ini, hanya benarkan cetak biasa
-              await CustomAppModal.alert("Keputusan borang ini <b>telah dikemaskini ke Drive sebelum ini</b>. Untuk mengelakkan pertindanan, anda hanya dibenarkan membuat cetakan biasa sahaja.", "Makluman", "info");
+              await CustomAppModal.alert("Keputusan borang ini <b style='color:#2563eb;'>telah dikemaskini ke Drive sebelum ini</b>. Untuk mengelakkan pertindanan, anda hanya dibenarkan membuat cetakan biasa sahaja.", "Makluman", "info");
               window.print();
               return;
           }
           
           if (isDriveAlreadyCreated) {
               const updateDrive = await CustomAppModal.confirm(
-                  "Adakah anda ingin KEMASKINI fail PDF keputusan ini ke dalam Drive, atau sekadar cetakan biasa pada pencetak?<br><br><b style='color:red;'>NOTA: Kemaskini ke Drive bagi setiap keputusan hanya dibenarkan SEKALI SAHAJA.</b>",
+                  "Adakah anda ingin KEMASKINI fail PDF keputusan ini ke dalam Drive, atau sekadar cetakan biasa pada pencetak?<br><br><b style='color:#ef4444;'>NOTA: Kemaskini ke Drive bagi setiap keputusan hanya dibenarkan SEKALI SAHAJA.</b>",
                   "Cetak & Kemaskini Drive",
                   "info",
                   "Ya, Kemaskini Drive"
@@ -10933,7 +10973,7 @@ Sila semak sistem STB untuk tindakan selanjutnya.`;
               proceedToDrive = true;
           } else {
               const userConfirmed = await CustomAppModal.confirm(
-                  "Adakah anda pasti ingin mencetak dan menyimpan borang keputusan ini ke Google Drive?<br><br><b style='color:red;'>NOTA: Simpanan ke Drive bagi setiap keputusan hanya dibenarkan SEKALI SAHAJA.</b>",
+                  "Adakah anda pasti ingin mencetak dan menyimpan borang keputusan ini ke Google Drive?<br><br><b style='color:#ef4444;'>NOTA: Simpanan ke Drive bagi setiap keputusan hanya dibenarkan SEKALI SAHAJA.</b>",
                   "Cetak & Simpan",
                   "info",
                   "Ya, Teruskan"
@@ -10973,11 +11013,7 @@ Sila semak sistem STB untuk tindakan selanjutnya.`;
                   email: currentUser ? currentUser.email : ''
               };
               
-              // --- KOD BARU: MULA PAPARKAN LOADING ANIMATION DI SINI ---
-              simulateLoadingWithSteps(
-                  ['Menjana dokumen PDF...', 'Memuat naik ke Google Drive...', 'Merekodkan status kemaskini...'], 
-                  'Sila Tunggu Sebentar'
-              );
+              simulateLoadingWithSteps(['Menjana dokumen PDF...', 'Memuat naik ke Google Drive...', 'Merekodkan status kemaskini...'], 'Sila Tunggu Sebentar');
               
               const response = await fetchWithRetry(SCRIPT_URL, {
                   method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify(payload)
@@ -10986,11 +11022,9 @@ Sila semak sistem STB untuk tindakan selanjutnya.`;
               const result = await response.json();
               
               if (result.success) {
-                  // Tandakan borang ini sebagai telah di-update oleh pelulus ke Drive
                   parsedData.pelulus_drive_updated = true;
                   item.borang_json = JSON.stringify(parsedData);
                   
-                  // Hantar isyarat ke pangkalan data untuk simpan penanda (flag) tersebut
                   const updatePayload = {
                       action: 'updateRecord',
                       row: item.row,
@@ -10998,21 +11032,15 @@ Sila semak sistem STB untuk tindakan selanjutnya.`;
                       email: currentUser ? currentUser.email : ''
                   };
                   
-                  // Biarkan ia update di background tanpa melengahkan pengguna
                   fetchWithRetry(SCRIPT_URL, {
                       method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify(updatePayload)
                   }, 3, 1000).catch(e => console.error("Gagal simpan flag drive pelulus:", e));
 
-                  // --- TUTUP LOADING JIKA BERJAYA ---
                   hideLoading();
-                  
                   await playSuccessSound();
                   await CustomAppModal.alert("Fail PDF berjaya dikemaskini di Drive! Pilihan untuk mengemaskini ke Drive bagi rekod ini telah ditutup.", "Berjaya Disimpan", "success");
-                  
-                  // Buka dialog print komputer selepas ia selesai
                   window.print();
               } else {
-                  // --- TUTUP LOADING JIKA GAGAL ---
                   hideLoading();
                   throw new Error(result.message);
               }
@@ -11028,13 +11056,36 @@ Sila semak sistem STB untuk tindakan selanjutnya.`;
       if (!item.borang_json) return;
       try {
           const parsedData = JSON.parse(item.borang_json);
+          
+          // --- 1. BACKUP: SIMPAN KEADAAN BORANG SEMASA ---
+          const backupValues = {};
+          document.querySelectorAll('#tab-checker input, #tab-checker select, #tab-checker textarea, #tab-database input, #tab-database select, #tab-database textarea, #tab-pelulus-action input, #tab-pelulus-action select, #tab-pelulus-action textarea').forEach(el => {
+              if (el.id && el.type !== 'file') {
+                  backupValues[el.id] = (el.type === 'checkbox' || el.type === 'radio') ? el.checked : el.value;
+              }
+          });
+          const backupPersonnelData = [];
+          document.querySelectorAll('.person-card').forEach(card => {
+              const roles = [];
+              card.querySelectorAll('.role-cb:checked').forEach(cb => roles.push(cb.value));
+              backupPersonnelData.push({
+                  name: card.querySelector('.p-name')?.value || '',
+                  isCompany: card.querySelector('.is-company')?.checked || false,
+                  roles: roles,
+                  s_ic: card.querySelector('.status-ic')?.value || '',
+                  s_sb: card.querySelector('.status-sb')?.value || '',
+                  s_epf: card.querySelector('.status-epf')?.value || ''
+              });
+          });
+          const oldActiveItem = pelulusActiveItem;
+
+          // --- 2. INJECT SEMENTARA DATA JSON UNTUK PREVIEW ---
           Object.keys(parsedData).forEach(key => {
               if (key === 'personnel' || key === 'jenisApp') return;
               const el = document.getElementById(key);
-              if (el) {
+              if (el && el.type !== 'file') {
                   if (el.type === 'checkbox' || el.type === 'radio') el.checked = parsedData[key];
-                  // TAMBAH SYARAT 'file' DI SINI
-                  else if (el.type !== 'file') el.value = parsedData[key];
+                  else el.value = parsedData[key];
               }
           });
           if (parsedData.jenisApp) {
@@ -11049,28 +11100,48 @@ Sila semak sistem STB untuk tindakan selanjutnya.`;
               }
           }
           
-          const oldActiveItem = pelulusActiveItem;
           pelulusActiveItem = item;
-          
           const elKeputusan = document.getElementById('pelulus_keputusan');
           if(elKeputusan) elKeputusan.value = item.kelulusan || '';
           const elNama = document.getElementById('pelulus_nama');
           if(elNama) elNama.value = item.pelulus || '';
           
+          // --- 3. JANA REKAAN CETAKAN ---
           preparePrintView();
-          
-          pelulusActiveItem = oldActiveItem;
           
           const printLayoutElement = document.getElementById('printLayout');
           const userColorHex = getUserColorHex(currentUser.color);
           const pdfCss = generatePdfCssString(userColorHex);
-          
+          const generatedHtml = printLayoutElement.outerHTML;
+
+          // --- 4. RESTORE: KEMBALIKAN BORANG KEPADA KEADAAN ASAL ---
+          pelulusActiveItem = oldActiveItem;
+          Object.keys(backupValues).forEach(id => {
+              const el = document.getElementById(id);
+              if (el && el.type !== 'file') {
+                  if (el.type === 'checkbox' || el.type === 'radio') el.checked = backupValues[id];
+                  else el.value = backupValues[id];
+              }
+          });
+          if (personnelListEl) {
+              personnelListEl.innerHTML = '';
+              if (backupPersonnelData.length > 0) backupPersonnelData.forEach(p => addPerson(p));
+              else addPerson();
+          }
+          // Kembalikan warna tick (jika ada)
+          document.querySelectorAll('.status-input').forEach(input => {
+              if (input.value === '✓') { input.style.backgroundColor = '#dcfce7'; input.style.color = '#166534'; } 
+              else if (input.value === 'X' || input.value === '✗') { input.style.backgroundColor = '#fee2e2'; input.style.color = '#991b1b'; } 
+              else { input.style.backgroundColor = '#eff6ff'; input.style.color = '#1e40af'; }
+          });
+
+          // --- 5. BUKA TAB PREVIEW ---
           const newWin = window.open('', '_blank');
-          newWin.document.write(`<html><head><title>Borang Semakan - ${item.syarikat}</title><style>${pdfCss} body { background: #f1f5f9 !important; padding: 20px; }</style></head><body>${printLayoutElement.outerHTML}</body></html>`);
+          newWin.document.write(`<html><head><title>Borang Semakan - ${item.syarikat}</title><style>${pdfCss} body { background: #f1f5f9 !important; padding: 20px; }</style></head><body>${generatedHtml}</body></html>`);
           newWin.document.close();
       } catch(e) {
           console.error(e);
-          alert("Gagal memaparkan borang.");
+          CustomAppModal.alert("Gagal memaparkan borang: " + e.message, "Ralat", "error"); 
       }
   }
 
