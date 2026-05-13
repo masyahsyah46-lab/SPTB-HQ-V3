@@ -11135,7 +11135,7 @@ Sila semak sistem STB untuk tindakan selanjutnya.`;
               else { input.style.backgroundColor = '#eff6ff'; input.style.color = '#1e40af'; }
           });
 
-          // --- 5. BUKA TAB PREVIEW (DENGAN REKAAN KERTAS A4) ---
+          // --- 5. BUKA TAB PREVIEW (VERSI PENUH SKRIN & KEDUDUKAN BERTENTANGAN) ---
           const newWin = window.open('', '_blank');
           newWin.document.write(`
             <html>
@@ -11144,56 +11144,62 @@ Sila semak sistem STB untuk tindakan selanjutnya.`;
               <style>
                 ${pdfCss} 
                 body { 
-                  background: #525659 !important; 
-                  padding: 40px 0; 
+                  background: white !important; 
                   margin: 0;
-                  display: flex; 
-                  justify-content: center;
-                  align-items: flex-start;
-                  min-height: 100vh;
+                  padding: 30px; 
+                  font-family: Arial, sans-serif;
                 }
                 .print-only-container {
-                  width: 210mm !important; 
-                  min-height: 297mm !important;
-                  height: auto !important; 
-                  background: white !important;
-                  padding: 15mm !important;
-                  box-shadow: 0 10px 30px rgba(0,0,0,0.5);
-                  box-sizing: border-box;
+                  width: 100% !important; /* Kembali ke paparan penuh skrin */
+                  max-width: 1100px;
+                  margin: 0 auto;
                   display: block !important;
-                  position: relative;
-                  margin-bottom: 40px;
+                  box-shadow: none !important;
                 }
                 
-                /* ========================================================
-                   KOD OVERRIDE KHAS UNTUK TAB PREVIEW SAHAJA
-                   Ia akan menimpa (override) tetapan asal tanpa 
-                   merosakkan butang Cetak di halaman utama.
-                   ======================================================== */
-                .verification-box {
-                  height: auto !important; 
-                  min-height: 160px !important; 
-                  padding-top: 10px !important;
-                }
-                .pengesyor-grid-new, .verification-box > div:last-child {
+                /* PENYUSUNAN BERTENTANGAN (SIDE-BY-SIDE) UNTUK PENGESYOR */
+                .pengesyor-grid-new {
+                  display: flex !important;
+                  justify-content: space-between !important;
                   align-items: flex-end !important;
+                  margin-top: 15px !important;
                 }
-                .pengesyor-sign-box, .verification-box > div:last-child > div:last-child {
-                  height: 100px !important;
+                .pengesyor-dates {
+                  flex: 1 !important;
+                  line-height: 1.8 !important;
                 }
+                .pengesyor-sign-box {
+                  width: 50% !important;
+                  height: 120px !important;
+                  position: relative !important;
+                  display: flex !important;
+                  justify-content: center !important;
+                }
+                
+                /* PENYUSUNAN BERTENTANGAN (SIDE-BY-SIDE) UNTUK PELULUS */
+                /* Mencari div yang mengandungi Tarikh Pelulus dan Sign Pelulus */
+                .verification-box:last-child > div:last-child {
+                  display: flex !important;
+                  justify-content: space-between !important;
+                  align-items: flex-end !important;
+                  margin-top: 10px !important;
+                }
+                
+                /* Pastikan cop dan sign tidak melanggar teks */
                 #print_pengesyor_sign, #print_pelulus_sign {
-                  bottom: 10px !important; 
+                  bottom: 25px !important; 
+                  position: absolute !important;
                   height: 60px !important;
                 }
                 #print_pengesyor_cop, #print_pelulus_cop {
-                  bottom: -5px !important; 
-                  height: 85px !important;
+                  bottom: 0px !important; 
+                  position: absolute !important;
+                  height: 90px !important;
                 }
-                /* ======================================================== */
 
                 @media print {
-                  body { background: white !important; padding: 0; display: block; }
-                  .print-only-container { width: 100% !important; box-shadow: none; padding: 0; margin: 0; }
+                  body { padding: 0; }
+                  .print-only-container { max-width: 100%; }
                 }
               </style>
             </head>
