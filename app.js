@@ -7996,28 +7996,28 @@ Sila semak sistem STB untuk tindakan selanjutnya.`;
     let modalType = 'warning';
     
     if (actionType === 'padam_semua') {
-      message = `Anda pasti mahu PADAM KESELURUHAN rekod untuk ${item.syarikat}? Tindakan ini TIDAK BOLEH dibatalkan.`;
+      message = `Anda pasti mahu PADAM KESELURUHAN rekod untuk <b>${item.syarikat}</b>? Tindakan ini TIDAK BOLEH dibatalkan.`;
       action = 'padam_semua';
       modalTitle = "Pengesahan Padam";
       btnText = "Ya, Padam";
       isDanger = true;
-      modalType = "error"; // Modal warna merah
+      modalType = "error"; 
     } else if (actionType === 'undo_syor') {
-      message = `Anda pasti mahu UNDO syor untuk ${item.syarikat}? Rekod akan kembali ke "Belum Syor".`;
+      message = `Anda pasti mahu UNDO syor untuk <b>${item.syarikat}</b>? Rekod akan kembali ke "Belum Syor".`;
       action = 'undo_syor';
       modalTitle = "Pengesahan Undo";
       btnText = "Ya, Undo";
       isDanger = false;
-      modalType = "warning"; // Modal warna oren/kuning
+      modalType = "warning"; 
     } else if (actionType === 'undo_lulus') {
-      message = `Anda pasti mahu UNDO kelulusan untuk ${item.syarikat}? Rekod akan kembali ke Inbox Pelulus.`;
+      message = `Anda pasti mahu UNDO kelulusan untuk <b>${item.syarikat}</b>? Rekod akan kembali ke Inbox Pelulus.`;
       action = 'undo_lulus';
       modalTitle = "Pengesahan Undo";
       btnText = "Ya, Undo";
       isDanger = false;
-      modalType = "warning"; // Modal warna oren/kuning
+      modalType = "warning"; 
     } else {
-      message = `Anda pasti mahu KOSONGKAN SYOR untuk ${item.syarikat}?`;
+      message = `Anda pasti mahu KOSONGKAN SYOR untuk <b>${item.syarikat}</b>?`;
       action = 'padam_syor';
       modalTitle = "Kosongkan Syor";
       btnText = "Ya, Kosongkan";
@@ -8025,13 +8025,14 @@ Sila semak sistem STB untuk tindakan selanjutnya.`;
       modalType = "warning";
     }
     
-    // Paparkan Custom Modal yang tepat mengikut tindakan
+    // GUNA CUSTOM APP MODAL
     const isConfirmed = await CustomAppModal.confirm(message, modalTitle, modalType, btnText, isDanger);
     if (!isConfirmed) return;
     
+    // MULA PAPARKAN LOADING
     simulateLoadingWithSteps(
-      ['Menghubungi pangkalan data...', 'Memadam rekod...', 'Menyusun semula senarai...'],
-      'Memproses Permintaan'
+      ['Menghubungi pangkalan data...', 'Memproses tindakan...', 'Menyusun semula senarai...'],
+      'Sila Tunggu Sebentar'
     );
     
     let payload;
@@ -8041,7 +8042,7 @@ Sila semak sistem STB untuk tindakan selanjutnya.`;
         row: item.row,
         syor_status: '',
         tarikh_syor: '',
-        email: currentUser ? currentUser.email : '', // <-- TAMBAH INI
+        email: currentUser ? currentUser.email : '',
         ...item
       };
       payload.syor_status = '';
@@ -8057,7 +8058,7 @@ Sila semak sistem STB untuk tindakan selanjutnya.`;
         alasan: '',
         tarikh_lulus: '',
         pelulus: '',
-        email: currentUser ? currentUser.email : '', // <-- TAMBAH INI
+        email: currentUser ? currentUser.email : '',
         ...item
       };
       payload.kelulusan = '';
@@ -8071,25 +8072,22 @@ Sila semak sistem STB untuk tindakan selanjutnya.`;
         row: item.row,
         deleteType: action,
         user: currentUser.name,
-        email: currentUser ? currentUser.email : '', // <-- TAMBAH INI
+        email: currentUser ? currentUser.email : '',
       };
     }
     
-    fetchWithRetry(SCRIPT_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-      body: JSON.stringify(payload)
-    }, 3, 1000)
-    .then(res => {
-      if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
-      return res.json();
-    })
-    .then(result => {
-      hideLoading();
+    try {
+      const response = await fetchWithRetry(SCRIPT_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify(payload)
+      }, 3, 1000);
+
+      if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+      const result = await response.json();
       
       if (result.status === 'success') {
-        playSoundEffect('minimal alert.mp3');
-        alert(result.message);
+        await playSoundEffect('positive_chime.mp3');
         
         if (cachedData && cachedData.length > 0) {
           const index = cachedData.findIndex(d => d.row === item.row);
@@ -8111,16 +8109,24 @@ Sila semak sistem STB untuk tindakan selanjutnya.`;
           }
         }
         
-        fetchAndRenderList(activeListType);
+        // TUNGGU fetchAndRenderList SELESAI SUSUN SEMULA SENARAI BARU
+        await fetchAndRenderList(activeListType);
+        
+        // TUTUP LOADING SELEPAS SEMUANYA SELESAI
+        hideLoading();
+        
+        // GUNA CUSTOM APP MODAL
+        await CustomAppModal.alert(result.message, "Selesai", "success");
+        
       } else {
-        alert("Ralat: " + (result.message || 'Gagal memproses rekod'));
+        hideLoading();
+        await CustomAppModal.alert("Ralat: " + (result.message || 'Gagal memproses rekod'), "Ralat", "error");
       }
-    })
-    .catch(err => {
+    } catch (err) {
       console.error("V6.5.2 Delete error:", err);
       hideLoading();
-      alert("Gagal memproses rekod: " + err.message);
-    });
+      await CustomAppModal.alert("Gagal memproses rekod: " + err.message, "Ralat", "error");
+    }
   }
 
   function displayFilteredItems(filtered, type) {
@@ -10900,12 +10906,22 @@ Sila semak sistem STB untuk tindakan selanjutnya.`;
           
           pelulusActiveItem = oldActiveItem;
           
+          // --- KOD BARU: SEMAK JIKA PELULUS SUDAH PERNAH KEMASKINI KE DRIVE ---
+          const hasUpdatedDrive = parsedData.pelulus_drive_updated === true;
+          
           const isDriveAlreadyCreated = (item.pautan && item.pautan.trim() !== '');
           let proceedToDrive = false;
           
+          if (hasUpdatedDrive) {
+              // Jika sudah kemaskini sebelum ini, hanya benarkan cetak biasa
+              await CustomAppModal.alert("Keputusan borang ini <b>telah dikemaskini ke Drive sebelum ini</b>. Untuk mengelakkan pertindanan, anda hanya dibenarkan membuat cetakan biasa sahaja.", "Makluman", "info");
+              window.print();
+              return;
+          }
+          
           if (isDriveAlreadyCreated) {
               const updateDrive = await CustomAppModal.confirm(
-                  "Adakah anda ingin KEMASKINI (simpan semula) fail PDF ini ke dalam Drive, atau sekadar cetakan biasa pada pencetak? (Pilihan Drive tidak menyertakan sign/cop).",
+                  "Adakah anda ingin KEMASKINI fail PDF keputusan ini ke dalam Drive, atau sekadar cetakan biasa pada pencetak?<br><br><b style='color:red;'>NOTA: Kemaskini ke Drive bagi setiap keputusan hanya dibenarkan SEKALI SAHAJA.</b>",
                   "Cetak & Kemaskini Drive",
                   "info",
                   "Ya, Kemaskini Drive"
@@ -10917,7 +10933,7 @@ Sila semak sistem STB untuk tindakan selanjutnya.`;
               proceedToDrive = true;
           } else {
               const userConfirmed = await CustomAppModal.confirm(
-                  "Adakah anda pasti ingin mencetak dan menyimpan borang ini ke Google Drive? (Pilihan Drive tidak menyertakan sign/cop).",
+                  "Adakah anda pasti ingin mencetak dan menyimpan borang keputusan ini ke Google Drive?<br><br><b style='color:red;'>NOTA: Simpanan ke Drive bagi setiap keputusan hanya dibenarkan SEKALI SAHAJA.</b>",
                   "Cetak & Simpan",
                   "info",
                   "Ya, Teruskan"
@@ -10957,19 +10973,47 @@ Sila semak sistem STB untuk tindakan selanjutnya.`;
                   email: currentUser ? currentUser.email : ''
               };
               
-              simulateLoadingWithSteps(['Menjana PDF...', 'Menyimpan ke Google Drive...'], 'Sila Tunggu');
+              // --- KOD BARU: MULA PAPARKAN LOADING ANIMATION DI SINI ---
+              simulateLoadingWithSteps(
+                  ['Menjana dokumen PDF...', 'Memuat naik ke Google Drive...', 'Merekodkan status kemaskini...'], 
+                  'Sila Tunggu Sebentar'
+              );
               
               const response = await fetchWithRetry(SCRIPT_URL, {
                   method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify(payload)
               }, 3, 1000);
+              
               const result = await response.json();
-              hideLoading();
               
               if (result.success) {
+                  // Tandakan borang ini sebagai telah di-update oleh pelulus ke Drive
+                  parsedData.pelulus_drive_updated = true;
+                  item.borang_json = JSON.stringify(parsedData);
+                  
+                  // Hantar isyarat ke pangkalan data untuk simpan penanda (flag) tersebut
+                  const updatePayload = {
+                      action: 'updateRecord',
+                      row: item.row,
+                      borang_json: item.borang_json,
+                      email: currentUser ? currentUser.email : ''
+                  };
+                  
+                  // Biarkan ia update di background tanpa melengahkan pengguna
+                  fetchWithRetry(SCRIPT_URL, {
+                      method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify(updatePayload)
+                  }, 3, 1000).catch(e => console.error("Gagal simpan flag drive pelulus:", e));
+
+                  // --- TUTUP LOADING JIKA BERJAYA ---
+                  hideLoading();
+                  
                   await playSuccessSound();
-                  await CustomAppModal.alert("Fail PDF berjaya dikemaskini di Drive!", "Berjaya Disimpan", "success");
+                  await CustomAppModal.alert("Fail PDF berjaya dikemaskini di Drive! Pilihan untuk mengemaskini ke Drive bagi rekod ini telah ditutup.", "Berjaya Disimpan", "success");
+                  
+                  // Buka dialog print komputer selepas ia selesai
                   window.print();
               } else {
+                  // --- TUTUP LOADING JIKA GAGAL ---
+                  hideLoading();
                   throw new Error(result.message);
               }
           }
