@@ -3577,7 +3577,7 @@ async function handleCredentialResponse(response) {
 
     const selectedModel = document.getElementById('aiModelSelect')?.value || 'localhost';
 
-    // 1. CUBA LOCALHOST (LM STUDIO) TERLEBIH DAHULU
+    // 1. CUBA LOCALHOST (LM STUDIO) TERLEBIH DAHULU JIKA DIPILIH ATAU AUTO
     if (selectedModel === 'localhost' || selectedModel === 'auto') {
         try {
             console.log("V6.5.2 (Web) Mencuba ekstrak menggunakan LocalHost (LM Studio)...");
@@ -3599,17 +3599,20 @@ async function handleCredentialResponse(response) {
                 const rawJsonContent = localData.choices[0].message.content;
                 console.log("V6.5.2 (Web) Berjaya diproses oleh LocalHost!");
                 return cleanLocalAIResponse(rawJsonContent);
+            } else {
+                throw new Error("Pelayan memulangkan status: " + localResponse.status);
             }
         } catch (e) {
-            console.warn("V6.5.2 (Web) LocalHost gagal (Mungkin LM Studio tidak dibuka).", e);
-            if (selectedModel === 'localhost') throw new Error("Pelayan LocalHost (LM Studio) tidak dijumpai. Pastikan Local Server sedang berjalan di port 1234.");
-            // Jika 'auto', ia akan sambung ke kod backend di bawah (Fallback)
-            document.getElementById('pdfProgressMsg').innerText = "LocalHost gagal. Menghantar ke Cloud AI...";
+            // KOD KEMASKINI: Jangan throw error. Biarkan ia beralih ke Cloud AI di bawah.
+            console.warn("V6.5.2 (Web) LocalHost gagal atau tidak dihidupkan. Beralih ke Cloud AI...", e);
+            document.getElementById('pdfProgressMsg').innerText = "LocalHost tidak aktif. Beralih ke Cloud AI...";
         }
     }
 
     // 2. FALLBACK KE CLOUD (BACKEND GOOGLE APPS SCRIPT)
     console.log("V6.5.2 (Web) Menghantar teks borang ke backend untuk Cloud AI processing...");
+    document.getElementById('pdfProgressMsg').innerText = "Menganalisis menggunakan Cloud AI...";
+    
     const payload = {
       action: 'processAI',
       type: 'borang',
@@ -4352,7 +4355,7 @@ async function handleCredentialResponse(response) {
 
     const selectedModel = document.getElementById('aiProfileModelSelect')?.value || 'localhost';
 
-    // 1. CUBA LOCALHOST (LM STUDIO) TERLEBIH DAHULU
+    // 1. CUBA LOCALHOST (LM STUDIO) TERLEBIH DAHULU JIKA DIPILIH ATAU AUTO
     if (selectedModel === 'localhost' || selectedModel === 'auto') {
         try {
             console.log("V6.5.2 (Web) Mencuba ekstrak Profil menggunakan LocalHost (LM Studio)...");
@@ -4374,16 +4377,20 @@ async function handleCredentialResponse(response) {
                 const rawJsonContent = localData.choices[0].message.content;
                 console.log("V6.5.2 (Web) Profil berjaya diproses oleh LocalHost!");
                 return cleanLocalAIResponse(rawJsonContent);
+            } else {
+                throw new Error("Pelayan memulangkan status: " + localResponse.status);
             }
         } catch (e) {
-            console.warn("V6.5.2 (Web) LocalHost gagal (Mungkin LM Studio tidak dibuka).", e);
-            if (selectedModel === 'localhost') throw new Error("Pelayan LocalHost (LM Studio) tidak dijumpai. Pastikan Local Server sedang berjalan di port 1234.");
-            document.getElementById('profilePdfProgressMsg').innerText = "LocalHost gagal. Menghantar ke Cloud AI...";
+            // KOD KEMASKINI: Jangan throw error. Biarkan ia beralih ke Cloud AI di bawah.
+            console.warn("V6.5.2 (Web) LocalHost gagal atau tidak dihidupkan. Beralih ke Cloud AI...", e);
+            document.getElementById('profilePdfProgressMsg').innerText = "LocalHost tidak aktif. Beralih ke Cloud AI...";
         }
     }
 
     // 2. FALLBACK KE CLOUD (BACKEND GOOGLE APPS SCRIPT)
     console.log("V6.5.2 (Web) Menghantar teks profil ke backend untuk Cloud AI processing...");
+    document.getElementById('profilePdfProgressMsg').innerText = "Menganalisis menggunakan Cloud AI...";
+    
     const payload = {
       action: 'processAI',
       type: 'profile',
