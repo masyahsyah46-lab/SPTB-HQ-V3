@@ -3554,19 +3554,67 @@ async function handleCredentialResponse(response) {
     }
   }
 
+  // --- FUNGSI BANTUAN PROMPT UNTUK LOCALHOST ---
+  function buildPromptLocal(text, type) {
+      if (type === 'profile') {
+          return `Ekstrak maklumat syarikat dari teks PDF ini ke format JSON SAHAJA.\nCari dan ekstrak maklumat alamat (alamatUtama, labelAlamatUtama, alamatSuratMenyurat).\nKeys yang diperlukan: applicantName, jawatan, icNumber, phoneNumber, email, companyName, registrationNumber, grade, registrationDate, jenisPendaftaran, alamatUtama, labelAlamatUtama, alamatSuratMenyurat, noTelefonSyarikat, noFax, emailSyarikat, webAddress.\nJika tidak ditemui, gunakan string kosong "".\nTeks PDF: ${text}`;
+      } else {
+          return `Ekstrak data syarikat dari teks PDF ini ke format JSON SAHAJA.\nPENTING: \n1. spkkDuration dan stbDuration MESTI string format "DD/MM/YYYY - DD/MM/YYYY" atau string kosong "" jika tiada.\n2. directors, shareholders, checkSignatories, spkkNominees, phoneNumbers MESTI "Array of Strings" (Senarai Nama/No Telefon Sahaja, BUKAN Object).\n3. grade: Ekstrak Gred syarikat seperti G1 hingga G7.\nKeys: companyName, cidbNumber, grade, spkkDuration (string), stbDuration (string), directors (array of strings), shareholders (array of strings), checkSignatories (array of strings), spkkNominees (array of strings), phoneNumbers (array of strings), alamatPerniagaan (string).\nTeks PDF: ${text}`;
+      }
+  }
+
+  function cleanLocalAIResponse(aiResponse) {
+      let cleanedText = aiResponse.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+      let jsonMatch = cleanedText.match(/\{[\s\S]*\}/);
+      if (jsonMatch) cleanedText = jsonMatch[0];
+      return JSON.parse(cleanedText);
+  }
+
+  // --- KEMASKINI: FUNGSI BORANG SEMAKAN ---
   async function processPdfTextWithAI(pdfText) {
     const maxTextLength = 30000;
-    const truncatedText = pdfText.length > maxTextLength
-      ? pdfText.substring(0, maxTextLength) + "... [text truncated]"
-      : pdfText;
+    const truncatedText = pdfText.length > maxTextLength ? pdfText.substring(0, maxTextLength) + "... [text truncated]" : pdfText;
 
-    console.log("V6.5.2 (Web) Menghantar teks borang ke backend untuk AI processing...");
-    
+    const selectedModel = document.getElementById('aiModelSelect')?.value || 'localhost';
+
+    // 1. CUBA LOCALHOST (LM STUDIO) TERLEBIH DAHULU
+    if (selectedModel === 'localhost' || selectedModel === 'auto') {
+        try {
+            console.log("V6.5.2 (Web) Mencuba ekstrak menggunakan LocalHost (LM Studio)...");
+            document.getElementById('pdfProgressMsg').innerText = "Menganalisis menggunakan Local AI...";
+            
+            const prompt = buildPromptLocal(truncatedText, 'borang');
+            const localResponse = await fetch('http://127.0.0.1:1234/v1/chat/completions', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    messages: [{ role: 'user', content: prompt }],
+                    temperature: 0.1,
+                    stream: false
+                })
+            });
+
+            if (localResponse.ok) {
+                const localData = await localResponse.json();
+                const rawJsonContent = localData.choices[0].message.content;
+                console.log("V6.5.2 (Web) Berjaya diproses oleh LocalHost!");
+                return cleanLocalAIResponse(rawJsonContent);
+            }
+        } catch (e) {
+            console.warn("V6.5.2 (Web) LocalHost gagal (Mungkin LM Studio tidak dibuka).", e);
+            if (selectedModel === 'localhost') throw new Error("Pelayan LocalHost (LM Studio) tidak dijumpai. Pastikan Local Server sedang berjalan di port 1234.");
+            // Jika 'auto', ia akan sambung ke kod backend di bawah (Fallback)
+            document.getElementById('pdfProgressMsg').innerText = "LocalHost gagal. Menghantar ke Cloud AI...";
+        }
+    }
+
+    // 2. FALLBACK KE CLOUD (BACKEND GOOGLE APPS SCRIPT)
+    console.log("V6.5.2 (Web) Menghantar teks borang ke backend untuk Cloud AI processing...");
     const payload = {
       action: 'processAI',
       type: 'borang',
       text: truncatedText,
-      email: currentUser ? currentUser.email : '' // <-- TAMBAH INI
+      email: currentUser ? currentUser.email : ''
     };
 
     const response = await fetchWithRetry(SCRIPT_URL, {
@@ -4297,19 +4345,50 @@ async function handleCredentialResponse(response) {
     }
   }
 
+  // --- KEMASKINI: FUNGSI PROFIL SYARIKAT ---
   async function processProfileTextWithAI(pdfText) {
     const maxTextLength = 30000;
-    const truncatedText = pdfText.length > maxTextLength
-      ? pdfText.substring(0, maxTextLength) + "... [text truncated]"
-      : pdfText;
+    const truncatedText = pdfText.length > maxTextLength ? pdfText.substring(0, maxTextLength) + "... [text truncated]" : pdfText;
 
-    console.log("V6.5.2 (Web) Menghantar teks profil ke backend untuk AI processing...");
-    
+    const selectedModel = document.getElementById('aiProfileModelSelect')?.value || 'localhost';
+
+    // 1. CUBA LOCALHOST (LM STUDIO) TERLEBIH DAHULU
+    if (selectedModel === 'localhost' || selectedModel === 'auto') {
+        try {
+            console.log("V6.5.2 (Web) Mencuba ekstrak Profil menggunakan LocalHost (LM Studio)...");
+            document.getElementById('profilePdfProgressMsg').innerText = "Menganalisis menggunakan Local AI...";
+            
+            const prompt = buildPromptLocal(truncatedText, 'profile');
+            const localResponse = await fetch('http://127.0.0.1:1234/v1/chat/completions', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    messages: [{ role: 'user', content: prompt }],
+                    temperature: 0.1,
+                    stream: false
+                })
+            });
+
+            if (localResponse.ok) {
+                const localData = await localResponse.json();
+                const rawJsonContent = localData.choices[0].message.content;
+                console.log("V6.5.2 (Web) Profil berjaya diproses oleh LocalHost!");
+                return cleanLocalAIResponse(rawJsonContent);
+            }
+        } catch (e) {
+            console.warn("V6.5.2 (Web) LocalHost gagal (Mungkin LM Studio tidak dibuka).", e);
+            if (selectedModel === 'localhost') throw new Error("Pelayan LocalHost (LM Studio) tidak dijumpai. Pastikan Local Server sedang berjalan di port 1234.");
+            document.getElementById('profilePdfProgressMsg').innerText = "LocalHost gagal. Menghantar ke Cloud AI...";
+        }
+    }
+
+    // 2. FALLBACK KE CLOUD (BACKEND GOOGLE APPS SCRIPT)
+    console.log("V6.5.2 (Web) Menghantar teks profil ke backend untuk Cloud AI processing...");
     const payload = {
       action: 'processAI',
       type: 'profile',
       text: truncatedText,
-      email: currentUser ? currentUser.email : '' // <-- TAMBAH INI
+      email: currentUser ? currentUser.email : ''
     };
 
     const response = await fetchWithRetry(SCRIPT_URL, {
