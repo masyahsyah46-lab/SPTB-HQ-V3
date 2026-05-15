@@ -39,7 +39,7 @@ document.addEventListener('DOMContentLoaded', () => {
   let bakulUnsubscribe = null;
 
   // URL APPSCRIPT
-  const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbymhb1CUzUC5WPRt4YJjOT2lNFZtKYk0wpsQaWUVQtnYsueGVcNDUx2Vg1vtriSw3kk/exec';
+  const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwTDtqZJsgoibGLO164cdf1GhC-rYO1TDZ0pncX71AM1nxMzVWv_IjHpm0wnPd4GHLY/exec';
   
   // Google Client ID
   const GOOGLE_CLIENT_ID = '758579492428-rnfev1nkkf2e6qduhujgtfbhudl2j9td.apps.googleusercontent.com';
@@ -1129,7 +1129,9 @@ async function handleCredentialResponse(response) {
         roles: roles,
         s_ic: card.querySelector('.status-ic')?.value || '',
         s_sb: card.querySelector('.status-sb')?.value || '',
-        s_epf: card.querySelector('.status-epf')?.value || ''
+        s_epf: card.querySelector('.status-epf')?.value || '',
+        c_date: card.querySelector('.comp-date')?.value || '',
+        c_status: card.querySelector('.status-comp')?.value || ''
       });
     });
     
@@ -5511,22 +5513,39 @@ Sila semak sistem STB untuk tindakan selanjutnya.`;
       const name = card.querySelector('.p-name')?.value.toUpperCase() || '';
       const roles = [];
       card.querySelectorAll('.role-cb:checked').forEach(cb => roles.push(cb.value));
+      const isCompany = card.querySelector('.is-company')?.checked || false;
       const s_ic = card.querySelector('.status-ic')?.value.toUpperCase() || '';
       const s_sb = card.querySelector('.status-sb')?.value.toUpperCase() || '';
       const s_epf = card.querySelector('.status-epf')?.value.toUpperCase() || '';
-      
-      const tick = (role) => roles.includes(role) ? '✓' : '';
-      
-      rowsHtml += `<tr>
-        <td style="padding:2px;"><div style="font-weight:bold; font-size:12pt; text-transform:uppercase;">${name}</div></td>
-        <td class="col-tick">${tick('PENGARAH')}</td>
-        <td class="col-tick">${tick('P.EKUITI')}</td>
-        <td class="col-tick">${tick('T.T CEK')}</td>
-        <td class="col-tick">${tick('P.SPKK')}</td>
-        <td class="col-tick">${s_ic}</td>
-        <td class="col-tick">${s_sb}</td>
-        <td class="col-tick">${s_epf}</td>
-      </tr>`;
+    
+    const tick = (role) => roles.includes(role) ? '✓' : '';
+    
+    if (isCompany) {
+        const cDate = card.querySelector('.comp-date')?.value || '';
+        const cStatus = card.querySelector('.status-comp')?.value.toUpperCase() || '';
+        const displayDate = cDate ? formatDateDisplay(cDate) : '';
+        const combinedText = `Tarikh: ${displayDate} | Status: ${cStatus}`;
+        
+        rowsHtml += `<tr>
+          <td style="padding:2px;"><div style="font-weight:bold; font-size:12pt; text-transform:uppercase;">${name}</div></td>
+          <td class="col-tick">${tick('PENGARAH')}</td>
+          <td class="col-tick">${tick('P.EKUITI')}</td>
+          <td class="col-tick">${tick('T.T CEK')}</td>
+          <td class="col-tick">${tick('P.SPKK')}</td>
+          <td colspan="3" style="text-align:center; font-size:9pt; font-weight:bold;">${combinedText}</td>
+        </tr>`;
+    } else {
+        rowsHtml += `<tr>
+          <td style="padding:2px;"><div style="font-weight:bold; font-size:12pt; text-transform:uppercase;">${name}</div></td>
+          <td class="col-tick">${tick('PENGARAH')}</td>
+          <td class="col-tick">${tick('P.EKUITI')}</td>
+          <td class="col-tick">${tick('T.T CEK')}</td>
+          <td class="col-tick">${tick('P.SPKK')}</td>
+          <td class="col-tick">${s_ic}</td>
+          <td class="col-tick">${s_sb}</td>
+          <td class="col-tick">${s_epf}</td>
+        </tr>`;
+    }
     });
 
     for(let i = cards.length; i < 6; i++) {
@@ -5541,8 +5560,16 @@ Sila semak sistem STB untuk tindakan selanjutnya.`;
     
     // Dapatkan nama pegawai
     const namaPengesyor = val('db_pengesyor') || val('pengesyor') || (currentUser && currentUser.role === 'PENGESYOR' ? currentUser.name : '');
-    const namaPelulus = document.getElementById('pelulus_nama')?.value || (typeof pelulusActiveItem !== 'undefined' && pelulusActiveItem ? pelulusActiveItem.pelulus : '');
-    const keputusanPelulus = document.getElementById('pelulus_keputusan')?.value || (typeof pelulusActiveItem !== 'undefined' && pelulusActiveItem ? pelulusActiveItem.kelulusan : '');
+    
+    // KOD KEMASKINI: Pastikan data Pelulus HANYA dipanggil jika borang sudah diluluskan/dipreviu 
+    // (Elakkan 'ghosting' data pada borang draf Pengesyor di tab Borang Semakan)
+    let namaPelulus = '';
+    let keputusanPelulus = '';
+    
+    if (lastActiveTab === 'pelulus-action' || lastActiveTab === 'pelulus-view' || lastActiveTab === 'history' || lastActiveTab === 'submitted' || lastActiveTab === 'youtube') {
+        namaPelulus = document.getElementById('pelulus_nama')?.value || (typeof pelulusActiveItem !== 'undefined' && pelulusActiveItem ? pelulusActiveItem.pelulus : '');
+        keputusanPelulus = document.getElementById('pelulus_keputusan')?.value || (typeof pelulusActiveItem !== 'undefined' && pelulusActiveItem ? pelulusActiveItem.kelulusan : '');
+    }
 
     // Dapatkan elemen gambar
     const imgSignPengesyor = document.getElementById('print_pengesyor_sign');
@@ -5550,12 +5577,25 @@ Sila semak sistem STB untuk tindakan selanjutnya.`;
     const imgSignPelulus = document.getElementById('print_pelulus_sign');
     const imgCopPelulus = document.getElementById('print_pelulus_cop');
     
-    // RESET PENTING: Sembunyikan & BUANG atribut 'src' supaya tak keluar ikon 'broken image' di PDF Drive
+    // RESET PENTING 1: Sembunyikan & BUANG atribut 'src' gambar
     [imgSignPengesyor, imgCopPengesyor, imgSignPelulus, imgCopPelulus].forEach(img => { 
         if (img) {
             img.style.display = 'none'; 
             img.removeAttribute('src'); 
         }
+    });
+
+    // RESET PENTING 2: Kosongkan Teks, Tarikh & Highlight Pelulus kepada format asal (kosong)
+    setTxt('print_tarikh_lulus', '________________');
+    setTxt('print_catatan_pelulus', '');
+    
+    const elLulus = document.getElementById('print_lulus');
+    const elLulusSyarat = document.getElementById('print_lulus_syarat');
+    const elPemutihan = document.getElementById('print_pemutihan');
+    const elTolak = document.getElementById('print_tolak');
+    
+    [elLulus, elLulusSyarat, elPemutihan, elTolak].forEach(el => { 
+        if (el) el.setAttribute('class', ''); // Buang sebarang highlight sedia ada
     });
 
     if (typeof usersList !== 'undefined' && usersList.length > 0) {
@@ -6247,6 +6287,18 @@ Sila semak sistem STB untuk tindakan selanjutnya.`;
       }
     });
   }
+
+  // === KOD BARU: Event Listener untuk Dropdown Syor (Input Database) ===
+  const dbSyorStatusDropdown = document.getElementById('db_syor_status');
+  if (dbSyorStatusDropdown) {
+    dbSyorStatusDropdown.addEventListener('change', () => {
+      // Panggil fungsi paparkan checkbox pengesahan
+      updateValidationCheckboxDisplay(); 
+      // Auto-save data setiap kali syor ditukar
+      saveDatabaseFormData(); 
+    });
+  }
+  // ====================================================================
 
   if (dbSahSyor) {
     dbSahSyor.addEventListener('change', (e) => {
@@ -7312,7 +7364,9 @@ Sila semak sistem STB untuk tindakan selanjutnya.`;
         roles: roles,
         s_ic: card.querySelector('.status-ic')?.value.toUpperCase() || '',
         s_sb: card.querySelector('.status-sb')?.value.toUpperCase() || '',
-        s_epf: card.querySelector('.status-epf')?.value.toUpperCase() || ''
+        s_epf: card.querySelector('.status-epf')?.value.toUpperCase() || '',
+        c_date: card.querySelector('.comp-date')?.value || '',
+        c_status: card.querySelector('.status-comp')?.value.toUpperCase() || ''
       });
     });
     formData.personnel = personnel;
@@ -8577,7 +8631,36 @@ Sila semak sistem STB untuk tindakan selanjutnya.`;
 
   function loadRecordToPelulus(item) {
     pelulusActiveItem = item;
-    savePelulusState(); 
+    
+    // === KOD KEMASKINI: Reset input keputusan pelulus untuk mengelakkan 'ghosting' data lama ===
+    const elKeputusan = document.getElementById('pelulus_keputusan');
+    const elAlasan = document.getElementById('pelulus_alasan');
+    const elCatatan = document.getElementById('pelulus_catatan');
+    const elSah = document.getElementById('pelulus_sah_lulus');
+    const elTukarSyor = document.getElementById('pelulus_tukar_syor_lawatan');
+    
+    // Kosongkan semua nilai input keputusan
+    if (elKeputusan) elKeputusan.value = '';
+    if (elAlasan) elAlasan.value = '';
+    if (elCatatan) elCatatan.value = '';
+    if (elSah) elSah.checked = false;
+    if (elTukarSyor) elTukarSyor.value = '';
+
+    // Sembunyikan elemen-elemen UI bersyarat
+    const divAlasan = document.getElementById('div_alasan');
+    if (divAlasan) divAlasan.style.display = 'none';
+    
+    const labelSah = document.getElementById('label_pelulus_sah_lulus');
+    if (labelSah) labelSah.style.display = 'none';
+
+    const divJustifikasi = document.getElementById('div_pelulus_justifikasi');
+    if (divJustifikasi) divJustifikasi.style.display = 'none';
+    
+    const divDateSpi = document.getElementById('div_pelulus_date_spi');
+    if (divDateSpi) divDateSpi.style.display = 'none';
+    // ======================================================================================
+
+    savePelulusState(); // Simpan keadaan kosong ini ke memori sistem
     renderPelulusView(false); 
     switchTab('pelulus-view');
   }
@@ -9026,7 +9109,9 @@ Sila semak sistem STB untuk tindakan selanjutnya.`;
           roles: roles,
           s_ic: card.querySelector('.status-ic')?.value || '',
           s_sb: card.querySelector('.status-sb')?.value || '',
-          s_epf: card.querySelector('.status-epf')?.value || ''
+          s_epf: card.querySelector('.status-epf')?.value || '',
+          c_date: card.querySelector('.comp-date')?.value || '',
+          c_status: card.querySelector('.status-comp')?.value || ''
         });
       });
       borangJsonData['personnel'] = personnelListObj;
@@ -9359,25 +9444,35 @@ Sila semak sistem STB untuk tindakan selanjutnya.`;
         </div>
       </div>
       <div style="margin-top:5px; border-top:1px dashed #ccc; padding-top:5px;">
-        <div class="grid-equal">
+        <div class="person-fields grid-3">
           <div>
             <label>IC</label>
             <div class="status-input-container">
-              <input type="text" class="status-ic status-input" maxlength="10" placeholder="-">
+              <input type="text" class="status-ic status-input" maxlength="20" placeholder="-">
             </div>
           </div>
           <div>
             <label>SB</label>
             <div class="status-input-container">
-              <input type="text" class="status-sb status-input" maxlength="10" placeholder="-">
+              <input type="text" class="status-sb status-input" maxlength="20" placeholder="-">
             </div>
           </div>
-        </div>
-        <div class="grid-equal" style="margin-top:5px;">
           <div>
             <label>EPF</label>
             <div class="status-input-container">
-              <input type="text" class="status-epf status-input" maxlength="10" placeholder="-">
+              <input type="text" class="status-epf status-input" maxlength="20" placeholder="-">
+            </div>
+          </div>
+        </div>
+        <div class="company-fields grid-equal" style="display:none;">
+          <div>
+            <label>Tarikh Semakan</label>
+            <input type="date" class="comp-date" style="width:100%; padding:8px; border:1px solid #d1d5db; border-radius:8px; font-size:0.95rem; text-transform:uppercase;">
+          </div>
+          <div>
+            <label>Status Semakan</label>
+            <div class="status-input-container">
+              <input type="text" class="status-comp status-input" maxlength="20" placeholder="-">
             </div>
           </div>
         </div>
@@ -9385,7 +9480,7 @@ Sila semak sistem STB untuk tindakan selanjutnya.`;
     `;
     personnelList.appendChild(div);
 
-    const docTypes = ['ic', 'sb', 'epf'];
+    const docTypes = ['ic', 'sb', 'epf', 'comp'];
     
     docTypes.forEach(type => {
       const input = div.querySelector(`.status-${type}`);
@@ -9444,13 +9539,49 @@ Sila semak sistem STB untuk tindakan selanjutnya.`;
     div.querySelectorAll('.role-cb, .is-company').forEach(cb => {
       cb.addEventListener('change', saveFormData);
     });
+    
+    const isCompCb = div.querySelector('.is-company');
+    if (isCompCb) {
+      isCompCb.addEventListener('change', (e) => {
+        const pFields = div.querySelector('.person-fields');
+        const cFields = div.querySelector('.company-fields');
+        if (e.target.checked) {
+          if (pFields) pFields.style.display = 'none';
+          if (cFields) cFields.style.display = 'grid';
+        } else {
+          if (pFields) pFields.style.display = 'grid';
+          if (cFields) cFields.style.display = 'none';
+        }
+      });
+    }
+    
+    const compDateInput = div.querySelector('.comp-date');
+    if (compDateInput) compDateInput.addEventListener('change', saveFormData);
 
     if(data) {
       if (nameInput) nameInput.value = data.name || '';
       
       const isCompanyCheckbox = div.querySelector('.is-company');
-      if (isCompanyCheckbox) isCompanyCheckbox.checked = data.isCompany || false;
+      const personFields = div.querySelector('.person-fields');
+      const companyFields = div.querySelector('.company-fields');
       
+      if (isCompanyCheckbox && data.isCompany) {
+        isCompanyCheckbox.checked = true;
+        if(personFields) personFields.style.display = 'none';
+        if(companyFields) companyFields.style.display = 'grid';
+      }
+      
+      const compDate = div.querySelector('.comp-date');
+      const statusComp = div.querySelector('.status-comp');
+      if (compDate && data.c_date) compDate.value = data.c_date;
+      if (statusComp && data.c_status) {
+        statusComp.value = data.c_status;
+        if (data.c_status === '✓') {
+          statusComp.style.backgroundColor = '#dcfce7'; statusComp.style.color = '#166534';
+        } else if (data.c_status === 'X') {
+          statusComp.style.backgroundColor = '#fee2e2'; statusComp.style.color = '#991b1b';
+        }
+      }
       if(data.roles) {
         div.querySelectorAll('.role-cb').forEach(cb => {
           if(data.roles.includes(cb.value)) cb.checked = true;
@@ -9611,18 +9742,25 @@ Sila semak sistem STB untuk tindakan selanjutnya.`;
     });
   }
 
-  const dbSyorStatus = document.getElementById('db_syor_status');
-  if (dbSyorStatus) {
-    dbSyorStatus.addEventListener('change', (e) => {
+  // LOGIK AUTO-FILL TARIKH PROSES BERDASARKAN KEPUTUSAN SYOR
+  const borangSyorStatus = document.getElementById('borang_syor_status');
+  const borangTarikhProses = document.getElementById('borang_tarikh_proses');
+
+  if (borangSyorStatus && borangTarikhProses) {
+    borangSyorStatus.addEventListener('change', (e) => {
       const val = e.target.value;
-      if (labelDbSahSyor) {
-        if (val !== '') {
-          labelDbSahSyor.style.display = 'block';
-        } else {
-          labelDbSahSyor.style.display = 'none';
-          if (dbSahSyor) dbSahSyor.checked = false;
-        }
+      // Jika pilih SOKONG atau TIDAK DISOKONG sahaja
+      if (val === 'SOKONG' || val === 'TIDAK DISOKONG') {
+        const today = new Date().toISOString().split('T')[0];
+        borangTarikhProses.value = today;
+      } else {
+        // Jika pilih SIASAT atau kosong, kosongkan tarikh proses
+        borangTarikhProses.value = '';
       }
+      
+      // Simpan perubahan ke memori (Auto-save)
+      saveFormData();
+      console.log(`V6.5.2 Auto-filled Tarikh Proses: ${borangTarikhProses.value}`);
     });
   }
 
@@ -10693,14 +10831,19 @@ Sila semak sistem STB untuk tindakan selanjutnya.`;
           return;
       }
       
-      tbody.innerHTML = dataArray.map((item, index) => `
+      tbody.innerHTML = dataArray.map((item, index) => {
+          // KOD BARU: Gunakan pelulus jika ada (untuk pemutihan), jika tiada kekalkan pengesyor (untuk siasatan biasa)
+          const pegawai = item.pelulus || item.pengesyor || '-';
+          
+          return `
           <tr style="border-bottom: 1px solid #f1f5f9;">
               <td style="text-align:center;">${index + 1}</td>
               <td style="font-weight:bold; color: #1e293b;">${item.syarikat}</td>
               <td style="text-align:center; color: #475569;">${item.cidb}</td>
-              <td style="text-align:center; font-size: 0.85rem;">${item.pengesyor}</td>
+              <td style="text-align:center; font-size: 0.85rem;">${pegawai}</td>
           </tr>
-      `).join('');
+          `;
+      }).join('');
   }
   // =========================================================================
   // KAWALAN KEMBALI KE DB DARI PROFILE
@@ -10924,6 +11067,10 @@ Sila semak sistem STB untuk tindakan selanjutnya.`;
           const elNama = document.getElementById('pelulus_nama');
           if(elNama) elNama.value = item.pelulus || '';
           
+          // KOD KEMASKINI: Set nama Pengesyor secara manual supaya Cop & Sign muncul
+          const elPengesyor = document.getElementById('db_pengesyor');
+          if (elPengesyor) elPengesyor.value = item.pengesyor || '';
+          
           // --- 3. JANA REKAAN CETAKAN ---
           preparePrintView(); 
           
@@ -11101,10 +11248,18 @@ Sila semak sistem STB untuk tindakan selanjutnya.`;
           }
           
           pelulusActiveItem = item;
+          
+          // Set maklumat Keputusan & Nama Pelulus
           const elKeputusan = document.getElementById('pelulus_keputusan');
           if(elKeputusan) elKeputusan.value = item.kelulusan || '';
           const elNama = document.getElementById('pelulus_nama');
           if(elNama) elNama.value = item.pelulus || '';
+          
+          // === KOD KEMASKINI: Paksa nama Pengesyor asal masuk ke input supaya Cop & Sign muncul ===
+          const elPengesyor = document.getElementById('db_pengesyor');
+          if (elPengesyor) {
+              elPengesyor.value = item.pengesyor || '';
+          }
           
           // --- 3. JANA REKAAN CETAKAN ---
           preparePrintView();
@@ -11194,7 +11349,7 @@ Sila semak sistem STB untuk tindakan selanjutnya.`;
                 
                 /* KAWALAN SAIZ & KEDUDUKAN COP / SIGN */
                 #print_pengesyor_sign, #print_pelulus_sign {
-                  bottom: 60px !important; /* Naikkan sign supaya berada di atas nama cop */
+                  bottom: 75px !important; /* Naikkan sign supaya berada di atas nama cop */
                   position: absolute !important;
                   height: 45px !important; /* Kecilkan saiz sign */
                   z-index: 2 !important; /* Pastikan sign berada di lapisan paling atas */

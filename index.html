@@ -181,11 +181,11 @@
                 <div class="grid-equal"><div><label>Tempoh SPKK</label><input type="text" id="spkkDuration"></div><div><label>Tempoh STB</label><input type="text" id="stbDuration"></div></div>
                 <div class="grid-equal">
                     <div><label>Tarikh e-Info SSM</label><input type="date" id="ssm_date_input"></div>
-                    <div><label>Status Semakan SSM</label><div class="status-input-container"><input type="text" id="ssm_status" class="status-input" maxlength="10" placeholder="-"><div class="tick-buttons"><button type="button" class="tick-btn tick-right" title="Set OK">✓</button><button type="button" class="tick-btn tick-wrong" title="Set X">✗</button></div></div></div>
+                    <div><label>Status Semakan SSM</label><div class="status-input-container"><input type="text" id="ssm_status" class="status-input" maxlength="20" placeholder="-"><div class="tick-buttons"><button type="button" class="tick-btn tick-right" title="Set OK">✓</button><button type="button" class="tick-btn tick-wrong" title="Set X">✗</button></div></div></div>
                 </div>
                 <div class="grid-2">
                     <div><label>Tarikh Bank</label><input type="date" id="bank_date_input"></div>
-                    <div><div style="display: flex; gap: 10px; flex-wrap: wrap;"><div style="flex: 1;"><label>Syarat Bank</label><input type="text" id="bank_sign_input"></div><div style="flex: 1;"><label>Status Semakan Bank</label><div class="status-input-container"><input type="text" id="bank_status_input" class="status-input" maxlength="10" placeholder="-"><div class="tick-buttons"><button type="button" class="tick-btn tick-right" title="Set OK">✓</button><button type="button" class="tick-btn tick-wrong" title="Set X">✗</button></div></div></div></div></div>
+                    <div><div style="display: flex; gap: 10px; flex-wrap: wrap;"><div style="flex: 1;"><label>Syarat Bank</label><input type="text" id="bank_sign_input"></div><div style="flex: 1;"><label>Status Semakan Bank</label><div class="status-input-container"><input type="text" id="bank_status_input" class="status-input" maxlength="20" placeholder="-"><div class="tick-buttons"><button type="button" class="tick-btn tick-right" title="Set OK">✓</button><button type="button" class="tick-btn tick-wrong" title="Set X">✗</button></div></div></div></div></div>
                 </div>
             </div>
 
@@ -202,23 +202,23 @@
 
             <div class="card">
                 <h2>📁 Dokumen & KWSP</h2>
-                <div class="grid-2">
-                    <div><label>Carta</label><div class="status-input-container"><input type="text" id="doc_carta_status" class="status-input" maxlength="10" placeholder="-"><div class="tick-buttons"><button type="button" class="tick-btn tick-right" title="Set OK">✓</button><button type="button" class="tick-btn tick-wrong" title="Set X">✗</button></div></div></div>
-                    <div><label>Peta</label><div class="status-input-container"><input type="text" id="doc_peta_status" class="status-input" maxlength="10" placeholder="-"><div class="tick-buttons"><button type="button" class="tick-btn tick-right" title="Set OK">✓</button><button type="button" class="tick-btn tick-wrong" title="Set X">✗</button></div></div></div>
-                    <div><label>Gambar</label><div class="status-input-container"><input type="text" id="doc_gambar_status" class="status-input" maxlength="10" placeholder="-"><div class="tick-buttons"><button type="button" class="tick-btn tick-right" title="Set OK">✓</button><button type="button" class="tick-btn tick-wrong" title="Set X">✗</button></div></div></div>
-                    <div><label>Sewa</label><div class="status-input-container"><input type="text" id="doc_sewa_status" class="status-input" maxlength="10" placeholder="-"><div class="tick-buttons"><button type="button" class="tick-btn tick-right" title="Set OK">✓</button><button type="button" class="tick-btn tick-wrong" title="Set X">✗</button></div></div></div>
+                <div class="grid-4">
+                    <div><label>Carta</label><div class="status-input-container"><input type="text" id="doc_carta_status" class="status-input" maxlength="20" placeholder="-"><div class="tick-buttons"><button type="button" class="tick-btn tick-right" title="Set OK">✓</button><button type="button" class="tick-btn tick-wrong" title="Set X">✗</button></div></div></div>
+                    <div><label>Peta</label><div class="status-input-container"><input type="text" id="doc_peta_status" class="status-input" maxlength="20" placeholder="-"><div class="tick-buttons"><button type="button" class="tick-btn tick-right" title="Set OK">✓</button><button type="button" class="tick-btn tick-wrong" title="Set X">✗</button></div></div></div>
+                    <div><label>Gambar</label><div class="status-input-container"><input type="text" id="doc_gambar_status" class="status-input" maxlength="20" placeholder="-"><div class="tick-buttons"><button type="button" class="tick-btn tick-right" title="Set OK">✓</button><button type="button" class="tick-btn tick-wrong" title="Set X">✗</button></div></div></div>
+                    <div><label>Sewa</label><div class="status-input-container"><input type="text" id="doc_sewa_status" class="status-input" maxlength="20" placeholder="-"><div class="tick-buttons"><button type="button" class="tick-btn tick-right" title="Set OK">✓</button><button type="button" class="tick-btn tick-wrong" title="Set X">✗</button></div></div></div>
                 </div>
                 <label style="margin-top:10px;">KWSP (3 Bulan)</label>
-                <div class="kwsp-row" style="margin-bottom:5px;"><div style="display:flex; gap:5px; flex-wrap: wrap;"><input type="month" id="kwsp_date_1" style="flex: 2;"><div class="status-input-container" style="flex: 1;"><input type="text" id="kwsp_s1" class="status-input" maxlength="10" placeholder="Status"><div class="tick-buttons"><button type="button" class="tick-btn tick-right" title="Set OK">✓</button><button type="button" class="tick-btn tick-wrong" title="Set X">✗</button></div></div></div></div>
-                <div class="kwsp-row" style="margin-bottom:5px;"><div style="display:flex; gap:5px; flex-wrap: wrap;"><input type="month" id="kwsp_date_2" style="flex: 2;"><div class="status-input-container" style="flex: 1;"><input type="text" id="kwsp_s2" class="status-input" maxlength="10" placeholder="Status"><div class="tick-buttons"><button type="button" class="tick-btn tick-right" title="Set OK">✓</button><button type="button" class="tick-btn tick-wrong" title="Set X">✗</button></div></div></div></div>
-                <div class="kwsp-row"><div style="display:flex; gap:5px; flex-wrap: wrap;"><input type="month" id="kwsp_date_3" style="flex: 2;"><div class="status-input-container" style="flex: 1;"><input type="text" id="kwsp_s3" class="status-input" maxlength="10" placeholder="Status"><div class="tick-buttons"><button type="button" class="tick-btn tick-right" title="Set OK">✓</button><button type="button" class="tick-btn tick-wrong" title="Set X">✗</button></div></div></div></div>
+                <div class="kwsp-row" style="margin-bottom:5px;"><div style="display:flex; gap:5px; flex-wrap: wrap;"><input type="month" id="kwsp_date_1" style="flex: 2;"><div class="status-input-container" style="flex: 1;"><input type="text" id="kwsp_s1" class="status-input" maxlength="20" placeholder="Status"><div class="tick-buttons"><button type="button" class="tick-btn tick-right" title="Set OK">✓</button><button type="button" class="tick-btn tick-wrong" title="Set X">✗</button></div></div></div></div>
+                <div class="kwsp-row" style="margin-bottom:5px;"><div style="display:flex; gap:5px; flex-wrap: wrap;"><input type="month" id="kwsp_date_2" style="flex: 2;"><div class="status-input-container" style="flex: 1;"><input type="text" id="kwsp_s2" class="status-input" maxlength="20" placeholder="Status"><div class="tick-buttons"><button type="button" class="tick-btn tick-right" title="Set OK">✓</button><button type="button" class="tick-btn tick-wrong" title="Set X">✗</button></div></div></div></div>
+                <div class="kwsp-row"><div style="display:flex; gap:5px; flex-wrap: wrap;"><input type="month" id="kwsp_date_3" style="flex: 2;"><div class="status-input-container" style="flex: 1;"><input type="text" id="kwsp_s3" class="status-input" maxlength="20" placeholder="Status"><div class="tick-buttons"><button type="button" class="tick-btn tick-right" title="Set OK">✓</button><button type="button" class="tick-btn tick-wrong" title="Set X">✗</button></div></div></div></div>
             </div>
             <div class="card">
                 <h2>📝 Maklumat Proses & Syor</h2>
-                <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px; margin-bottom:10px;">
+                <div class="grid-4" style="margin-bottom:10px;">
                     <div><label>Tarikh Dokumen Lengkap</label><input type="date" id="borang_tarikh_lengkap"></div>
                     <div><label>Tarikh Siasatan</label><input type="date" id="borang_tarikh_siasatan"></div>
-                    <div><label>Tarikh Proses</label><input type="date" id="borang_tarikh_proses"></div>
+                    <div><label>Tarikh Proses</label><input type="date" id="borang_tarikh_proses" readonly style="background: #f1f5f9; cursor: not-allowed;" title="Tarikh ini diisi secara automatik mengikut keputusan syor"></div>
                     <div><label>Keputusan Syor</label><select id="borang_syor_status" style="border-color: #3b82f6; font-weight: bold;"><option value="">- PILIH -</option><option value="SOKONG">SOKONG</option><option value="SIASAT">SIASAT</option><option value="TIDAK DISOKONG">TIDAK DISOKONG</option></select></div>
                 </div>
             </div>
@@ -617,7 +617,7 @@
                 <div style="max-height: 25vh; overflow-y: auto; border: 1px solid #cbd5e1; border-radius: 8px; background: white; box-shadow: inset 0 2px 4px rgba(0,0,0,0.05);">
                     <table class="monthly-table" style="width: 100%; margin-top: 0; font-size: 0.9rem;">
                         <thead style="position: sticky; top: 0; background: #f8fafc; z-index: 10; box-shadow: 0 1px 2px rgba(0,0,0,0.1);">
-                            <tr><th width="8%">Bil</th><th width="47%">Syarikat</th><th width="20%">CIDB</th><th width="25%">Pengesyor</th></tr>
+                            <tr><th width="8%">Bil</th><th width="47%">Syarikat</th><th width="20%">CIDB</th><th width="25%">Pelulus</th></tr>
                         </thead>
                         <tbody id="tbodyQueuePemutihan"><tr><td colspan="4" style="padding: 20px; color: #64748b;">Tiada data</td></tr></tbody>
                     </table>
